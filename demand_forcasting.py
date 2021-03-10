@@ -113,23 +113,19 @@ class UI:
         
         self.var = IntVar()
         self.R1 = Radiobutton(arıma, text="AR", variable= self.var, 
-                              value =1,
-                              command=self.sel)
+                              value =1)
         self.R1.grid(column =1,
                      row =2)
         self.R2 = Radiobutton(arıma, text="MA", variable= self.var, 
-                              value =2,
-                              command=self.sel)
+                              value =2)
         self.R2.grid(column =1,
                      row =3)
         self.R3 = Radiobutton(arıma, text="ARMA", variable= self.var, 
-                              value =3,
-                              command=self.sel)
+                              value =3)
         self.R3.grid(column =1,
                      row =4)
         self.R3 = Radiobutton(arıma, text="ARIMA", variable= self.var, 
-                              value =4,
-                              command=self.sel)
+                              value =4)
         self.R3.grid(column =1,
                      row =5)
         
@@ -304,11 +300,10 @@ class UI:
         autocorrelation_plot(new_data['num_orders'])
         plt.show(block = False)
 
-        
     
-    def sel(self):
-       self.selection = "You selected the option " + str(self.var.get())
-       label.config(text = selection)
+    # def sel(self):
+       # self.selection = "You selected the option " + str(self.var.get())
+       # label.config(text = selection)
         
     def adfuller(self):
         
@@ -370,7 +365,21 @@ class UI:
         
     def run(self):
         
-        ar = ARIMA(self.ts_moving_avg_diff['num_orders'], order=(1,1,0))
+        radioN = self.var.get()
+        if radioN == 1:
+            ar = 1
+            ma = 0
+        elif radioN == 2:
+            ar = 0
+            ma =1
+        elif radioN == 3:
+           pass
+        else:
+            ar = 1
+            ma = 1
+        
+        
+        ar = ARIMA(self.ts_moving_avg_diff['num_orders'], order=(ar,1,ma))
         # diff_ARIMA = (ar_fit.fittedvalues - self.ts_moving_avg_diff['num_orders'])
         # diff_ARIMA.dropna(inplace=True)
         ar_fitted = ar.fit(disp=0)
@@ -382,7 +391,8 @@ class UI:
         # plt.plot(ar_fit.fittedvalues, color='red')
         # plt.title('AR Model RSS: %.4F'%sum((diff_ARIMA)**2))
         plt.show()
-
+        
+        
 
 root = tk.Tk() 
 root.title("Tab Widget") 
