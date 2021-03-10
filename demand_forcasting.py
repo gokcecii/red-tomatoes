@@ -11,6 +11,8 @@ import win32com.client as win32ComClient
 client = win32ComClient.Dispatch(dispatch="Idea.IdeaClient")
 from numpy import log
 from pandas.plotting import autocorrelation_plot
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.arima_model import ARIMA
 
 # Read from CSV
 # center_info = pd.read_csv('D://MED IDEA//project//red_project//fulfilment_center_info.csv')
@@ -21,7 +23,7 @@ from pandas.plotting import autocorrelation_plot
 # Read from IMD
 class UI:
     
-    def __init__(self, win,arıma,ml):  
+    def __init__(self, win,arıma,ml,help_):  
         
         self.df = None
         
@@ -72,6 +74,35 @@ class UI:
                                row = 2, 
                                padx = 5,
                                pady = 5)
+        self.btnadfuller = Button(self.labelframe2, 
+                                   text = "Adfuller Test", 
+                                   command = self.adfuller,
+                                   width = 25,
+                                   height = 1)
+        self.btnadfuller.grid(column = 3, 
+                               row = 2, 
+                               padx = 5,
+                               pady = 5)
+        
+        
+        #LabelFrame 3
+        self.labelframe3 = LabelFrame(win, 
+                                      text = "Result", 
+                                      height = 100)
+        self.labelframe3.pack(fill = "both", 
+                              pady = 5, 
+                              padx = 5)
+        
+        self.labelframe2.pack_propagate(0)
+        
+        self.lbladfuller = Label(self.labelframe3, 
+                                 text="")
+        
+        self.lbladfuller.grid(column = 4, 
+                               row = 2, 
+                               padx = 5,
+                               pady = 5)
+        
         
         # Arıma win
         
@@ -110,7 +141,7 @@ class UI:
         self.Entry3 = Entry(arıma, width =5)
         self.Entry3.grid(column =2, row =5)
         
-        self.btn_run = Button(arıma, text ="Run", width =12 ,height =1)
+        self.btn_run = Button(arıma, text ="Run", width =12 ,height =1, command=self.run)
         self.btn_run.grid(column =3, row =3, padx =25)
     
     def load(self):
@@ -272,13 +303,87 @@ class UI:
         new_data = self.df.groupby(['week'])['num_orders'].sum().reset_index()
         autocorrelation_plot(new_data['num_orders'])
         plt.show(block = False)
+
+        
     
     def sel(self):
        self.selection = "You selected the option " + str(self.var.get())
        label.config(text = selection)
         
-
+    def adfuller(self):
         
+        self.indexedDataset= self.df.groupby(['week'])['num_orders'].sum().reset_index()
+        self.indexedDataset.set_index(['week'],inplace=True)
+
+        #Perform Augmented Dickey–Fuller test:
+        # check_adfuller
+        def check_adfuller(ts):
+            # Dickey-Fuller test
+            print('Results of Dickey Fuller Test:')
+            dftest = adfuller(ts, autolag='AIC')
+            print(dftest)
+            dfoutput = pd.Series(dftest[0:4], index=['Test Statistic','p-value','#Lags Used','Number of Observations Used'])
+            for key,value in dftest[4].items():
+                dfoutput['Critical Value (%s)'%key] = value
+
+            self.lbladfuller['text'] = dfoutput
+
+            
+        # check_mean_std
+        def check_mean_std():
+            #Rolling statistics
+            ts = self.indexedDataset
+            rolmean = ts.rolling(6).mean()
+            rolstd = ts.rolling(6).std()
+            plt.figure(figsize=(22,10))   
+            orig = plt.plot(ts, color='red',label='Original')
+            mean = plt.plot(rolmean, color='black', label='Rolling Mean')
+            std = plt.plot(rolstd, color='green', label = 'Rolling Std')
+            plt.xlabel("Date")
+            plt.ylabel("Mean Temperature")
+            plt.title('Rolling Mean & Standard Deviation')
+            plt.legend()
+            plt.show()
+            
+        # check stationary: mean, variance(std)and adfuller test
+        check_mean_std()
+        check_adfuller(self.indexedDataset.num_orders)
+        
+        # Moving average method
+        window_size = 6
+        moving_avg = self.indexedDataset.rolling(window_size).mean()
+        plt.figure(figsize=(22,10))
+        plt.plot(self.indexedDataset, color = "red",label = "Original")
+        plt.plot(moving_avg, color='black', label = "moving_avg_mean")
+        plt.title("Mean Temperature of Bindukuri Area")
+        plt.xlabel("Date")
+        plt.ylabel("Mean Temperature")
+        plt.legend()
+        plt.show()
+        
+        self.ts_moving_avg_diff = self.indexedDataset - moving_avg
+        self.ts_moving_avg_diff.dropna(inplace=True) # first 6 is nan value due to window size
+        
+        # check stationary: mean, variance(std)and adfuller test
+        check_mean_std()
+        check_adfuller(self.ts_moving_avg_diff.num_orders)
+        
+    def run(self):
+        
+        ar = ARIMA(self.ts_moving_avg_diff['num_orders'], order=(1,1,0))
+        # diff_ARIMA = (ar_fit.fittedvalues - self.ts_moving_avg_diff['num_orders'])
+        # diff_ARIMA.dropna(inplace=True)
+        ar_fitted = ar.fit(disp=0)
+        forecast = ar_fitted.predict(1, 250)
+        
+        # plt.plot(self.ts_moving_avg_diff)
+        plt.plot(self.ts_moving_avg_diff)
+        plt.plot(forecast)
+        # plt.plot(ar_fit.fittedvalues, color='red')
+        # plt.title('AR Model RSS: %.4F'%sum((diff_ARIMA)**2))
+        plt.show()
+
+
 root = tk.Tk() 
 root.title("Tab Widget") 
 root.geometry("800x400")
@@ -287,13 +392,16 @@ tabControl = ttk.Notebook(root)
 tab1 = ttk.Frame(tabControl) 
 tab2 = ttk.Frame(tabControl) 
 tab3 = ttk.Frame(tabControl) 
+tab4 = ttk.Frame(tabControl) 
   
 tabControl.add(tab1, text ='Data') 
 tabControl.add(tab2, text ='Arıma')
 tabControl.add(tab3, text ='ML')  
+tabControl.add(tab4, text ='Help') 
 tabControl.pack(expand = 1, fill ="both") 
 
-mywin = UI(tab1,tab2,tab3)
+mywin = UI(tab1,tab2,tab3,tab4)
+
 
 # ttk.Label(tab1,  
 #           text ="Welcome to GeeksForGeeks").grid(column = 0,  
