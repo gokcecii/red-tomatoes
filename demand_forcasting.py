@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import IDEALib as ideaLib
 import tkinter as tk
 from tkinter import ttk
@@ -12,7 +14,7 @@ client = win32ComClient.Dispatch(dispatch="Idea.IdeaClient")
 from numpy import log
 from pandas.plotting import autocorrelation_plot
 from statsmodels.tsa.stattools import adfuller
-from statsmodels.tsa.arima_model import ARIMA
+from statsmodels.tsa.arima_model import ARIMA, ARMA
 
 # Read from CSV
 # center_info = pd.read_csv('D://MED IDEA//project//red_project//fulfilment_center_info.csv')
@@ -26,6 +28,7 @@ class UI:
     def __init__(self, win,arıma,ml,help_):  
         
         self.df = None
+        self.arıma = arıma
         
         # LABELFRAME 1
         self.labelframe1 = LabelFrame(win, 
@@ -106,63 +109,87 @@ class UI:
         
         # Arıma win
         
-        self.title1 = Label(arıma, text ="Model", font='Helvetica 9 bold')
-        self.title1.grid(column =1, row =1, pady =10)
-        self.title2 = Label(arıma, text ="Order", font='Helvetica 9 bold')
-        self.title2.grid(column =2, row =1, pady =10)
+        self.title1 = Label(arıma, text ="Model",
+                            font='Helvetica 9 bold').place(x=5, y=0)
+        
+        self.title2 = Label(arıma, text ="Order", 
+                            font='Helvetica 9 bold').place(x=100, y=0)
         
         self.var = IntVar()
         self.R1 = Radiobutton(arıma, text="AR", variable= self.var, 
-                              value =1)
-        self.R1.grid(column =1,
-                     row =2)
+                              value =1).place(x=5, y=20)
+        
         self.R2 = Radiobutton(arıma, text="MA", variable= self.var, 
-                              value =2)
-        self.R2.grid(column =1,
-                     row =3)
+                              value =2).place(x=5, y=40)
+        
         self.R3 = Radiobutton(arıma, text="ARMA", variable= self.var, 
-                              value =3)
-        self.R3.grid(column =1,
-                     row =4)
+                              value =3).place(x=5, y=60)
+        
         self.R3 = Radiobutton(arıma, text="ARIMA", variable= self.var, 
-                              value =4)
-        self.R3.grid(column =1,
-                     row =5)
+                              value =4).place(x=5, y=80)
         
         
         self.Entry1 = Entry(arıma, width =5)
-        self.Entry1.grid(column =2, row =2)
+        self.Entry1.insert(0,1)
+        self.Entry1.place(x=100, y=20)
         self.Entry2 = Entry(arıma, width =5)
-        self.Entry2.grid(column =2, row =3)
-        self.Entry3 = Entry(arıma, width =5)
-        self.Entry3.grid(column =2, row =5)
+        self.Entry2.insert(0,1)
+        self.Entry2.place(x=100, y=40)
         
-        self.btn_run = Button(arıma, text ="Run", width =12 ,height =1, command=self.run)
-        self.btn_run.grid(column =3, row =3, padx =25)
+        self.ar_tool = Button(arıma, text ="?", width =1 ,height =1, 
+                            font='Helvetica 9 bold')
+        
+        self.lbl_ar_tooltip = CreateToolTip(self.ar_tool, "p for AR order")
+        self.ar_tool.place(x=140, y=20)
+        self.ma_tool = Button(arıma, text ="?", width =1 ,height =1, 
+                            font='Helvetica 9 bold')
+        
+        self.lbl_ma_tooltip=CreateToolTip(self.ma_tool, "q for MA order")
+        self.ma_tool.place(x=140, y=40)
+        self.btn_run = Button(arıma, text ="Run", width =12 ,height =1, 
+                              command=self.run).place(x=100, y=80)
+        
+        self.is_canvas = 0
+        
+        
     
     def load(self):
         
         self.filename = filedialog.askopenfilename(initialdir="/",
                         title="Select a File",
-                        filetypes=(("Excel files", "*.IMD*"), ("all files", 
-                                                               "*.*")))
-        self.datalocation['text'] = self.filename  
+                        filetypes=(("Excel files", ".IMD*"), ("all files", 
+                                                               "*.*"),
+                                   ("Excel files", ".csv*")))
         
-        # Read from .IMD file
-        self.filename=self.filename.split('/')
-        self.filename=self.filename[-1]                  # Dataset must be in IDEA working directory
-        self.df = ideaLib.idea2py(database = self.filename)
+        self.datatype = self.filename.split('.')
+        if (self.datatype[-1] == 'csv'):
+            messagebox.showinfo('Info','Please try again later')
+            # self.df = pd.read_csv(self.filename)
+            # self.df = client.OpenDatabase(self.df)	
+        
+        elif self.datatype[-1] == 'IMD':
+            self.datalocation['text'] = self.filename  
+            
+            # Read from .IMD file
+            self.filename=self.filename.split('/')
+            self.filename=self.filename[-1]                  # Dataset must be in IDEA working directory
+            self.df = ideaLib.idea2py(database = self.filename)
+            
         if self.df is None:
            messagebox.showinfo("Info",
                                "There was something wrong with the import process of IDEA database to Pandas dataframe")
         elif self.df.empty:
           messagebox.showinfo("Info","You selected an empty IDEA database")
-        else:
-            pd.set_option('display.max_columns', None)
-            pd.set_option("display.float_format",lambda x:"%.2f" % x)
+        if self.datatype[-1] == 'IMD':
+            # pd.set_option('display.max_columns', None)
+            # pd.set_option("display.float_format",lambda x:"%.4f" % x)
             self.df = self.df.astype({"CENTER_TYPE": str,"CATEGORY": str,
                                           "CUISINE": str})
             self.df.columns = map(str.lower, self.df.columns)
+        elif self.datatype[-1] == 'csv':
+             self.df.columns = map(str.lower, self.df.columns)
+        else :
+            messagebox.showerror('Error', 'Invalid Data Type')
                  
     
     def Data_Analyze(self):
@@ -365,25 +392,44 @@ class UI:
         
     def run(self):
         
-        radioN = self.var.get()
-        if radioN == 1:
-            ar = 1
-            ma = 0
-        elif radioN == 2:
-            ar = 0
-            ma =1
-        elif radioN == 3:
-           pass
+        if self.var.get() == 0:
+            messagebox.showinfo('Info','Please select a Model')
+        
+        elif self.Entry1.get().isdigit() == False:
+            messagebox.showerror('Error','Type a number for orders')
+        elif self.Entry2.get().isdigit() == False:
+            messagebox.showerror('Error','Type a number for orders')
         else:
-            ar = 1
-            ma = 1
+            radioN = self.var.get()
+            if radioN == 1:
+                p = int(self.Entry1.get())
+                q = 0
+                self.arıma_model(p,q)
+            elif radioN == 2:
+                p = 0
+                q = int(self.Entry2.get())
+                self.arıma_model(p,q)
+            elif radioN == 3:
+                p = int(self.Entry1.get())
+                q = int(self.Entry2.get())
+                self.arma_model(p,q)
+            else:
+                p = int(self.Entry1.get())
+                q = int(self.Entry2.get())   
+                self.arıma_model(p,q)
+    
+           
         
+    def arıma_model(self,p,q):
+
+        if self.is_canvas == 1:
+            self.canvas.get_tk_widget().pack_forget()
         
-        ar = ARIMA(self.ts_moving_avg_diff['num_orders'], order=(ar,1,ma))
+        ar = ARIMA(self.ts_moving_avg_diff['num_orders'], order=(p,1,q))
         # diff_ARIMA = (ar_fit.fittedvalues - self.ts_moving_avg_diff['num_orders'])
         # diff_ARIMA.dropna(inplace=True)
         ar_fitted = ar.fit(disp=0)
-        forecast = ar_fitted.predict(1, 250)
+        forecast = ar_fitted.predict(100, 180)
         
         # plt.plot(self.ts_moving_avg_diff)
         plt.plot(self.ts_moving_avg_diff)
@@ -392,7 +438,77 @@ class UI:
         # plt.title('AR Model RSS: %.4F'%sum((diff_ARIMA)**2))
         plt.show()
         
+        fig = Figure(figsize=(6, 6), dpi=100)
+        fig.add_subplot(111).plot(self.ts_moving_avg_diff)
+        fig.add_subplot(111).plot(forecast)
         
+
+        self.canvas = FigureCanvasTkAgg(fig, master =self.arıma)  # A tk.DrawingArea.
+        self.canvas.get_tk_widget().pack(side=RIGHT)
+        self.canvas.draw()        
+        self.is_canvas = 1
+        
+        
+    def arma_model(self,p,q):
+        
+        if self.is_canvas == 1:
+            self.canvas.get_tk_widget().pack_forget()          
+        
+        ar = ARMA(self.ts_moving_avg_diff['num_orders'], order=(p,q))
+        # diff_ARIMA = (ar_fit.fittedvalues - self.ts_moving_avg_diff['num_orders'])
+        # diff_ARIMA.dropna(inplace=True)
+        ar_fitted = ar.fit(disp=0)
+        forecast = ar_fitted.predict(100, 180)
+        
+        # plt.plot(self.ts_moving_avg_diff)
+        plt.plot(self.ts_moving_avg_diff)
+        plt.plot(forecast)
+        # plt.plot(ar_fit.fittedvalues, color='red')
+        # plt.title('AR Model RSS: %.4F'%sum((diff_ARIMA)**2))
+        plt.show()
+        
+        fig = Figure(figsize=(6, 6), dpi=100)
+        fig.add_subplot(111).plot(self.ts_moving_avg_diff)
+        fig.add_subplot(111).plot(forecast)
+        
+
+        self.canvas = FigureCanvasTkAgg(fig, master =self.arıma)  # A tk.DrawingArea.
+        self.canvas.get_tk_widget().pack(side=RIGHT)
+        self.canvas.draw()
+        self.is_canvas = 1
+        
+        
+    
+# Tooltip
+class CreateToolTip(object):
+    '''
+    create a tooltip for a given widget
+    '''
+    def __init__(self, widget, text='widget info'):
+        self.widget = widget
+        self.text = text
+        self.widget.bind("<Enter>", self.enter)
+        self.widget.bind("<Leave>", self.close)
+
+    def enter(self, event=None):
+        x = y = 0
+        x, y, cx, cy = self.widget.bbox("insert")
+        x += self.widget.winfo_rootx() + 25
+        y += self.widget.winfo_rooty() + 20
+        # creates a toplevel window
+        self.tw = tk.Toplevel(self.widget)
+        # Leaves only the label and removes the app window
+        self.tw.wm_overrideredirect(True)
+        self.tw.wm_geometry("+%d+%d" % (x, y))
+        label = tk.Label(self.tw, text=self.text, justify='left',
+                       relief='solid', borderwidth=1,
+                       font=("times", "8", "normal"))
+        label.pack(ipadx=1)
+
+    def close(self, event=None):
+        if self.tw:
+            self.tw.destroy()    
+    
 
 root = tk.Tk() 
 root.title("Tab Widget") 
