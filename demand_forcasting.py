@@ -105,6 +105,51 @@ class UI:
                                row = 2, 
                                padx = 5,
                                pady = 5)
+        # TAB4 - HELP
+        
+        # help data tab
+        self.labelframe4 = LabelFrame(help_, 
+                                      text = "DATA TAB", 
+                                      height = 200)
+        self.labelframe4.pack(fill = "both", 
+                              pady = 5, 
+                              padx = 5)
+        
+        self.labelframe4.pack_propagate(0)
+        
+        
+        
+        self.upload_text = Label(self.labelframe4, 
+                              text = "--> BROWSE BUTTON uses for load a dataset(IMD or .CSV extension) \n\n --> ANALYSIS BUTTON saves base_price, Center_id Orders, checkout_price etc.  plots to plots folder \n\n --> CORRELATION BUTTON shows correlation plot \n\n --> ADFULLER TEST: To determine if a time series is stationary or not, we uses the ADF test which is a type of unit root test \n\n --> RESULT: ADF Test Resault. For a time series to be stationary, the ADCF test must have:  \n a) Low p value \n   b) Critical values \n at  - 1%, 5%, 10% confidence intervals should be as close as possible to the Test Statistics.")
+        self.upload_text.pack(side="left")
+        
+        # help arima tab
+        self.labelframe5 = LabelFrame(help_, 
+                                      text = "ARIMA TAB", 
+                                      height = 80)
+        self.labelframe5.pack(fill = "both", 
+                              pady = 5, 
+                              padx = 5)
+        
+        self.labelframe5.pack_propagate(0)
+        self.arima_text = Label(self.labelframe5, 
+                              text = "--> Possible methods are AR, MA, ARMA, ARIMA for time series analysis. Example: From the ACF graph, we see that curve touches y=0.0 line at x=0.\n Thus, from theory, Q = 0 From the PACF graph, we see that curve touches  y=0.0 line at x=1. Thus, from theory, P = 1")
+        self.arima_text.pack(side="left")
+        
+        
+        
+        # ml help tab
+        self.labelframe6 = LabelFrame(help_, 
+                                      text = "ML TAB", 
+                                      height = 80)
+        self.labelframe6.pack(fill = "both", 
+                              pady = 5, 
+                              padx = 5)
+        
+        self.labelframe6.pack_propagate(0)
+        self.ml_text = Label(self.labelframe6, 
+                              text = "--> Forecasting with Machine Learning")
+        self.ml_text.pack(side="left")
         
         
         # Arıma win
@@ -541,4 +586,3 @@ mywin = UI(tab1,tab2,tab3,tab4)
 #                                                         pady = 30) 
   
 root.mainloop()   
-
