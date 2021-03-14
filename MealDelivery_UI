@@ -94,7 +94,7 @@ class UI:
         #LabelFrame 3
         self.labelframe3 = LabelFrame(win, 
                                       text = "Result", 
-                                      height = 100)
+                                      height = 200)
         self.labelframe3.pack(fill = "both", 
                               pady = 5, 
                               padx = 5)
@@ -113,7 +113,7 @@ class UI:
         # help data tab
         self.labelframe4 = LabelFrame(help_, 
                                       text = "DATA TAB", 
-                                      height = 200)
+                                      height = 400)
         self.labelframe4.pack(fill = "both", 
                               pady = 5, 
                               padx = 5)
@@ -123,7 +123,7 @@ class UI:
         
         
         self.upload_text = Label(self.labelframe4, 
-                              text = "--> BROWSE BUTTON uses for load a dataset(IMD or .CSV extension) \n\n --> ANALYSIS BUTTON saves base_price, Center_id Orders, checkout_price etc.  plots to plots folder \n\n --> CORRELATION BUTTON shows correlation plot \n\n --> ADFULLER TEST: To determine if a time series is stationary or not, we uses the ADF test which is a type of unit root test \n\n --> RESULT: ADF Test Resault. For a time series to be stationary, the ADCF test must have:  \n a) Low p value \n   b) Critical values \n at  - 1%, 5%, 10% confidence intervals should be as close as possible to the Test Statistics.")
+                              text = "\nBROWSE BUTTON\nLoads a dataset (.IMD or .csv extensions are allowed.)\n----------\nANALYZE BUTTON\nCreates a new folder named as \"plots\" and saves the resultant plots into the folder.\nCorresponging plots are base_price.png, Center_id Orders.png, checkout_price.png, meal_id Orders.png, seasonality.png, Weekly Orders.png.\n---------\nCORRELATION BUTTON\nShows the correlation plot.\n----------\nADFULLER TEST BUTTON\nDetermines if time series data is stationary or not.\n----------\nRESULT SECTION\nAugmented Dickey-Fuller (ADF) test is used.\nADF test is a type of unit root test. A unit root test determines how strongly a time series is defined by a trend.\nThe null hypothesis of the test is that the time series can be represented by a unit root, that it is not stationary (has some time-dependent structure). \nThe alternate hypothesis (rejecting the null hypothesis) is that the time series is stationary.\n\n For a time series to be stationary, ADF test must result as follows:\na. If p-value > 0.05: Fail to reject the null hypothesis (H0), the data has a unit root and is non-stationary.\n  If p-value <= 0.05: Reject the null hypothesis (H0), the data does not have a unit root and is stationary.\nb) Critical values at 1%, 5%, 10% confidence intervals should be as close as possible to the Test Statistics.")
         self.upload_text.pack(side="left")
         
         # help arima tab
