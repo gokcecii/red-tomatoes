@@ -94,10 +94,15 @@ class UI:
         #LabelFrame 3
         self.labelframe3 = LabelFrame(win, 
                                       text = "Result", 
-                                      height = 200)
+                                      height = 500)
         self.labelframe3.pack(fill = "both", 
                               pady = 5, 
                               padx = 5)
+        self.labelframe3.pack_propagate(0)        
+        self.upload_text = Label(self.labelframe3, 
+                              text =  "For a time series to be stationary, ADF test must result as follows:\na) If p-value > 0.05: Fail to reject the null hypothesis (H0), the data has a unit root and is non-stationary.\n  If p-value <= 0.05: Reject the null hypothesis (H0), the data does not have a unit root and is stationary.\nb) Critical values at 1%, 5%, 10% confidence intervals should be as close as possible to the Test Statistics. For further detail, see Help section.")
+        self.upload_text.pack(side="left")
+
         
         self.labelframe2.pack_propagate(0)
         
@@ -119,11 +124,10 @@ class UI:
                               padx = 5)
         
         self.labelframe4.pack_propagate(0)
-        
-        
+    
         
         self.upload_text = Label(self.labelframe4, 
-                              text = "\nBROWSE BUTTON\nLoads a dataset (.IMD or .csv extensions are allowed.)\n----------\nANALYZE BUTTON\nCreates a new folder named as \"plots\" and saves the resultant plots into the folder.\nCorresponging plots are base_price.png, Center_id Orders.png, checkout_price.png, meal_id Orders.png, seasonality.png, Weekly Orders.png.\n---------\nCORRELATION BUTTON\nShows the correlation plot.\n----------\nADFULLER TEST BUTTON\nDetermines if time series data is stationary or not.\n----------\nRESULT SECTION\nAugmented Dickey-Fuller (ADF) test is used.\nADF test is a type of unit root test. A unit root test determines how strongly a time series is defined by a trend.\nThe null hypothesis of the test is that the time series can be represented by a unit root, that it is not stationary (has some time-dependent structure). \nThe alternate hypothesis (rejecting the null hypothesis) is that the time series is stationary.\n\n For a time series to be stationary, ADF test must result as follows:\na. If p-value > 0.05: Fail to reject the null hypothesis (H0), the data has a unit root and is non-stationary.\n  If p-value <= 0.05: Reject the null hypothesis (H0), the data does not have a unit root and is stationary.\nb) Critical values at 1%, 5%, 10% confidence intervals should be as close as possible to the Test Statistics.")
+                              text = "\nBROWSE BUTTON\nLoads a dataset (.IMD or .csv extensions are allowed.)\n----------\nANALYZE BUTTON\nCreates a new folder named as \"plots\" and saves the resultant plots into the folder.\nCorresponging plots are base_price.png, Center_id Orders.png, checkout_price.png, meal_id Orders.png, seasonality.png, Weekly Orders.png.\n---------\nCORRELATION BUTTON\nShows the correlation plot.\n----------\nADFULLER TEST BUTTON\nDetermines if time series data is stationary or not.\n----------\nRESULT SECTION\nAugmented Dickey-Fuller (ADF) test is used.\nADF test is a type of unit root test. A unit root test determines how strongly a time series is defined by a trend.\nThe null hypothesis of the test is that the time series can be represented by a unit root, that it is not stationary (has some time-dependent structure). \nThe alternate hypothesis (rejecting the null hypothesis) is that the time series is stationary.\nFor a time series to be stationary, ADF test must result as follows:\na. If p-value > 0.05: Fail to reject the null hypothesis (H0), the data has a unit root and is non-stationary.\n  If p-value <= 0.05: Reject the null hypothesis (H0), the data does not have a unit root and is stationary.\nb) Critical values at 1%, 5%, 10% confidence intervals should be as close as possible to the Test Statistics.")
         self.upload_text.pack(side="left")
         
         # help arima tab
@@ -579,7 +583,7 @@ tab3 = ttk.Frame(tabControl)
 tab4 = ttk.Frame(tabControl) 
   
 tabControl.add(tab1, text ='Data') 
-tabControl.add(tab2, text ='Arıma')
+tabControl.add(tab2, text ='ARIMA')
 tabControl.add(tab3, text ='ML')  
 tabControl.add(tab4, text ='Help') 
 tabControl.pack(expand = 1, fill ="both") 
