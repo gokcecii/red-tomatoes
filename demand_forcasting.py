@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Mar 15 09:54:00 2021
+
+@author: kenan
+"""
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -15,6 +22,17 @@ from numpy import log
 from pandas.plotting import autocorrelation_plot
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.arima_model import ARIMA, ARMA
+from statsmodels.tsa.seasonal import seasonal_decompose
+import os
+from sklearn.linear_model import LinearRegression
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor 
+from sklearn.model_selection import train_test_split 
+from sklearn.preprocessing import StandardScaler
+from sklearn import metrics
+
+dirname = os.path.dirname(__file__)
 
 # Read from CSV
 # center_info = pd.read_csv('D://MED IDEA//project//red_project//fulfilment_center_info.csv')
@@ -66,7 +84,8 @@ class UI:
                            text = "Analyze", 
                            command = self.Data_Analyze)
         self.btn2.grid(column = 1, 
-                       row = 1)
+                       row = 1,
+                       padx = 5)
         
         self.btn_correlation = Button(self.labelframe2, 
                                    text = "Correlation", 
@@ -82,13 +101,36 @@ class UI:
                                    command = self.adfuller,
                                    width = 25,
                                    height = 1)
-        self.btnadfuller.grid(column = 3, 
+        self.btnadfuller.grid(column = 2, 
                                row = 2, 
                                padx = 5,
                                pady = 5)
         
+        self.btn_moving_avg = Button(self.labelframe2,
+                                     text = 'Moving Average',
+                                     command = self.moving_average,
+                                     width = 25,
+                                     height = 1)
         
-        #LabelFrame 3
+        self.btn_moving_avg.grid(column = 4,
+                                 row = 2, 
+                                 padx = 5,
+                                 pady = 5)
+        
+        self.btn_trend = Button(self.labelframe2, 
+                                   text = "Trend", 
+                                   command = self.trend,
+                                   width = 25,
+                                   height = 1)        
+        self.btn_trend.grid(column = 2, 
+                               row = 1, 
+                               padx = 5)
+        
+        
+        
+        self.ismov = 0 # did not call moving average
+        
+               #LabelFrame 3
         self.labelframe3 = LabelFrame(win, 
                                       text = "Result", 
                                       height = 100)
@@ -101,26 +143,33 @@ class UI:
         self.lbladfuller = Label(self.labelframe3, 
                                  text="")
         
-        self.lbladfuller.grid(column = 4, 
-                               row = 2, 
+        self.lbladfuller.grid(column = 1, 
+                               row = 1, 
                                padx = 5,
                                pady = 5)
-        # TAB4 - HELP
+        self.lblinfo = Label(self.labelframe3, 
+                                 text="")
         
+        self.lblinfo.grid(column = 5, 
+                               row = 1, 
+                               padx = 5,
+                               pady = 5)
+        
+        
+        # TAB4 - HELP
         # help data tab
         self.labelframe4 = LabelFrame(help_, 
                                       text = "DATA TAB", 
-                                      height = 200)
+                                      height = 400)
         self.labelframe4.pack(fill = "both", 
                               pady = 5, 
                               padx = 5)
         
         self.labelframe4.pack_propagate(0)
-        
-        
+    
         
         self.upload_text = Label(self.labelframe4, 
-                              text = "--> BROWSE BUTTON uses for load a dataset(IMD or .CSV extension) \n\n --> ANALYSIS BUTTON saves base_price, Center_id Orders, checkout_price etc.  plots to plots folder \n\n --> CORRELATION BUTTON shows correlation plot \n\n --> ADFULLER TEST: To determine if a time series is stationary or not, we uses the ADF test which is a type of unit root test \n\n --> RESULT: ADF Test Resault. For a time series to be stationary, the ADCF test must have:  \n a) Low p value \n   b) Critical values \n at  - 1%, 5%, 10% confidence intervals should be as close as possible to the Test Statistics.")
+                              text = "\nBROWSE BUTTON\nLoads a dataset (.IMD or .csv extensions are allowed.)\n----------\nANALYZE BUTTON\nCreates a new folder named as \"plots\" and saves the resultant plots into the folder.\nCorresponging plots are base_price.png, Center_id Orders.png, checkout_price.png, meal_id Orders.png, seasonality.png, Weekly Orders.png.\n---------\nCORRELATION BUTTON\nShows the correlation plot.\n----------\nADFULLER TEST BUTTON\nDetermines if time series data is stationary or not.\n----------\nRESULT SECTION\nAugmented Dickey-Fuller (ADF) test is used.\nADF test is a type of unit root test. A unit root test determines how strongly a time series is defined by a trend.\nThe null hypothesis of the test is that the time series can be represented by a unit root, that it is not stationary (has some time-dependent structure). \nThe alternate hypothesis (rejecting the null hypothesis) is that the time series is stationary.\nFor a time series to be stationary, ADF test must result as follows:\na. If p-value > 0.05: Fail to reject the null hypothesis (H0), the data has a unit root and is non-stationary.\n  If p-value <= 0.05: Reject the null hypothesis (H0), the data does not have a unit root and is stationary.\nb) Critical values at 1%, 5%, 10% confidence intervals should be as close as possible to the Test Statistics.")
         self.upload_text.pack(side="left")
         
         # help arima tab
@@ -136,8 +185,6 @@ class UI:
                               text = "--> Possible methods are AR, MA, ARMA, ARIMA for time series analysis. Example: From the ACF graph, we see that curve touches y=0.0 line at x=0.\n Thus, from theory, Q = 0 From the PACF graph, we see that curve touches  y=0.0 line at x=1. Thus, from theory, P = 1")
         self.arima_text.pack(side="left")
         
-        
-        
         # ml help tab
         self.labelframe6 = LabelFrame(help_, 
                                       text = "ML TAB", 
@@ -151,6 +198,8 @@ class UI:
                               text = "--> Forecasting with Machine Learning")
         self.ml_text.pack(side="left")
         
+
+
         
         # Arıma win
         
@@ -196,6 +245,54 @@ class UI:
         
         self.is_canvas = 0
         
+        # ML Win
+        self.lbl_train = Label(ml, 
+                              text = "Please Load a train data:").place(x=5,y=5)
+        
+        self.btn_train = Button(ml, 
+                           text= "Browse", 
+                           command = self.load_train).place(x=150, y=5)
+        self.lbl_test = Label(ml, 
+                              text = "Please Load a test data:").place(x=5,y=40)
+        
+        self.btn_test = Button(ml, 
+                           text= "Browse", 
+                           command = self.load_test).place(x=150, y=40)
+        
+        self.title1 = Label(ml, text ="Model",
+                            font='Helvetica 9 bold').place(x=5, y=60)
+        
+        self.title2 = Label(ml, text ="Order", 
+                            font='Helvetica 9 bold').place(x=100, y=80)
+        
+        self.var = IntVar()
+        self.R1 = Radiobutton(ml, text="LinearRegression", variable= self.var, 
+                              value =1).place(x=5, y=60)
+        
+        self.R2 = Radiobutton(ml, text="KNeighborsRegressor", variable= self.var, 
+                              value =2).place(x=5, y=80)
+        
+        self.R3 = Radiobutton(ml, text="DecisionTreeRegressor", variable= self.var, 
+                              value =3).place(x=5, y=100)
+        
+        self.R3 = Radiobutton(ml, text="RandomForestRegressor", variable= self.var, 
+                              value =4).place(x=5, y=120)
+        
+    
+        
+        # self.ar_tool = Button(ml, text ="?", width =1 ,height =1, 
+        #                     font='Helvetica 9 bold')
+        
+        # self.lbl_ar_tooltip = CreateToolTip(self.ar_tool, "p for AR order")
+        # self.ar_tool.place(x=140, y=20)
+        # self.ma_tool = Button(arıma, text ="?", width =1 ,height =1, 
+        #                     font='Helvetica 9 bold')
+        
+        # self.lbl_ma_tooltip=CreateToolTip(self.ma_tool, "q for MA order")
+        # self.ma_tool.place(x=140, y=40)
+        
+        self.btn_run_ml = Button(ml, text ="Run", width =12 ,height =1, 
+                              command=self.run_ml).place(x=200, y=80)
         
     
     def load(self):
@@ -247,7 +344,12 @@ class UI:
         plt.ylabel('orders')
         plt.title('Weekly Orders')
         # plt.show(block = False)
-        plt.savefig('plots/Weekly Orders.png')
+        
+        mypath = dirname+"/plots"
+        if not os.path.isdir(mypath):
+            os.makedirs(mypath)
+        #Saving plots:
+        plt.savefig(dirname + '/plots/Weekly Orders.png')
         plt.close()
         
         center_id = self.df.groupby(['center_id'])['num_orders'].sum().reset_index()
@@ -257,7 +359,7 @@ class UI:
         plt.xlabel('center_id')
         plt.ylabel('orders')
         plt.title('Center_id Orders')
-        plt.savefig('plots/Center_id Orders.png')
+        plt.savefig(dirname + '/plots/Center_id Orders.png')
         plt.close()
         
         meal_id = self.df.groupby(['meal_id'])['num_orders'].sum().reset_index()
@@ -267,7 +369,7 @@ class UI:
         plt.xlabel('meal_id')
         plt.ylabel('orders')
         plt.title('meal_id Orders')
-        plt.savefig('plots/meal_id Orders.png')
+        plt.savefig(dirname + '/plots/meal_id Orders.png')
         plt.close()
         
         # category = self.df.groupby(['category'])['num_orders'].sum().reset_index()
@@ -278,7 +380,7 @@ class UI:
         # plt.xlabel('category')
         # plt.ylabel('orders')
         # plt.title('category Orders')
-        # plt.savefig('plots/category Orders.png')
+        # plt.savefig(dirname + '/plots/category Orders.png')
         # plt.close()
         
         
@@ -291,20 +393,20 @@ class UI:
         # plt.xlabel('category_cuisine')
         # plt.ylabel('orders')
         # plt.title('category_cuisine Orders')
-        # plt.savefig('plots/category_cuisine Orders.png')
+        # plt.savefig(dirname + '/plots/category_cuisine Orders.png')
         # plt.close()
         
         
         plt.scatter(self.df['checkout_price'],self.df['num_orders'],s=2)
         plt.xlabel('checkout_price')
         plt.ylabel('orders')
-        plt.savefig('plots/checkout_price.png')
+        plt.savefig(dirname + '/plots/checkout_price.png')
         plt.ioff()
         
         plt.scatter(self.df['base_price'],self.df['num_orders'],s=2)
         plt.xlabel('base_price')
         plt.ylabel('orders')
-        plt.savefig('plots/base_price.png')
+        plt.savefig(dirname + '/plots/base_price.png')
         plt.close()
         
         
@@ -321,7 +423,7 @@ class UI:
         #     center_type = data.groupby(['week','center_type'])['num_orders'].sum().reset_index()
         #     plt.plot(center_type['week'],center_type['num_orders'])
         # plt.legend(lis)
-        # plt.savefig('plots/Order Type.png')
+        # plt.savefig(dirname + '/plots/Order Type.png')
         
         
         ts = self.df.groupby(['week'])['num_orders'].sum().reset_index()
@@ -351,7 +453,7 @@ class UI:
         plt.title('Seasons')
         plt.xlabel('Seasons')
         plt.ylabel('Orders')
-        plt.savefig('plots/seasonality.png')
+        plt.savefig(dirname + '/plots/seasonality.png')
         plt.close()
         
         messagebox.showinfo('Info', 'Plots are saved')
@@ -389,11 +491,16 @@ class UI:
             print('Results of Dickey Fuller Test:')
             dftest = adfuller(ts, autolag='AIC')
             print(dftest)
-            dfoutput = pd.Series(dftest[0:4], index=['Test Statistic','p-value','#Lags Used','Number of Observations Used'])
+            dfoutput = pd.Series(dftest[0:4], index=['Test Statistic',
+                                                     'p-value','#Lags Used',
+                                                     'Number of Observations \
+                                                     Used'])
             for key,value in dftest[4].items():
                 dfoutput['Critical Value (%s)'%key] = value
 
             self.lbladfuller['text'] = dfoutput
+            self.lblinfo['text'] = "If so there is stability: \n\n - P-value \
+is less than 0.05 \n -Test statistics less than critical values"
 
             
         # check_mean_std
@@ -410,31 +517,62 @@ class UI:
             plt.ylabel("Mean Temperature")
             plt.title('Rolling Mean & Standard Deviation')
             plt.legend()
-            plt.show()
+            plt.show(block = False)
             
         # check stationary: mean, variance(std)and adfuller test
-        check_mean_std()
-        check_adfuller(self.indexedDataset.num_orders)
+        if self.ismov == 0:
+            check_mean_std()
+            check_adfuller(self.indexedDataset.num_orders)
         
+        # plt.figure(figsize=(22,10))
+        # plt.plot(self.indexedDataset, color = "red",label = "Original")
+        # plt.plot(moving_avg, color='black', label = "moving_avg_mean")
+        # plt.title("Mean Temperature of Bindukuri Area")
+        # plt.xlabel("Date")
+        # plt.ylabel("Mean Temperature")
+        # plt.legend()
+        # plt.show()
+        
+        # check stationary: mean, variance(std)and adfuller test
+        if self.ismov == 1:
+            check_mean_std()
+            check_adfuller(self.ts_moving_avg_diff.num_orders)
+        
+    
+    def moving_average(self):
+        self.ismov = 1 # called moving average
         # Moving average method
         window_size = 6
         moving_avg = self.indexedDataset.rolling(window_size).mean()
-        plt.figure(figsize=(22,10))
-        plt.plot(self.indexedDataset, color = "red",label = "Original")
-        plt.plot(moving_avg, color='black', label = "moving_avg_mean")
-        plt.title("Mean Temperature of Bindukuri Area")
-        plt.xlabel("Date")
-        plt.ylabel("Mean Temperature")
-        plt.legend()
-        plt.show()
-        
         self.ts_moving_avg_diff = self.indexedDataset - moving_avg
         self.ts_moving_avg_diff.dropna(inplace=True) # first 6 is nan value due to window size
+
+    def trend(self):
+        x = self.df.groupby(['week'])['num_orders'].sum().reset_index()
+        x['date'] = pd.date_range('2020-01-01', periods=145, freq='W')
+        x.drop(columns = 'week', axis = 1, inplace=True)
+        x.set_index('date',inplace=True)
+        x = x.astype(float) # force float
+        decomposition = seasonal_decompose(x)
+        trend = decomposition.trend
+        seasonal = decomposition.seasonal
+        residual = decomposition.resid
         
-        # check stationary: mean, variance(std)and adfuller test
-        check_mean_std()
-        check_adfuller(self.ts_moving_avg_diff.num_orders)
-        
+        plt.subplot(411)
+        plt.plot(x, label='Original')
+        plt.legend(loc='best')
+        plt.subplot(412)
+        plt.plot(trend, label='Trend')
+        plt.legend(loc='best')
+        plt.subplot(413)
+        plt.plot(seasonal,label='Seasonality')
+        plt.legend(loc='best')
+        plt.subplot(414)
+        plt.plot(residual, label='Residuals')
+        plt.legend(loc='best')
+        plt.tight_layout()
+        plt.show()
+
     def run(self):
         
         if self.var.get() == 0:
@@ -481,7 +619,7 @@ class UI:
         plt.plot(forecast)
         # plt.plot(ar_fit.fittedvalues, color='red')
         # plt.title('AR Model RSS: %.4F'%sum((diff_ARIMA)**2))
-        plt.show()
+        plt.show(block= False)
         
         fig = Figure(figsize=(6, 6), dpi=100)
         fig.add_subplot(111).plot(self.ts_moving_avg_diff)
@@ -510,7 +648,7 @@ class UI:
         plt.plot(forecast)
         # plt.plot(ar_fit.fittedvalues, color='red')
         # plt.title('AR Model RSS: %.4F'%sum((diff_ARIMA)**2))
-        plt.show()
+        plt.show(block= False)
         
         fig = Figure(figsize=(6, 6), dpi=100)
         fig.add_subplot(111).plot(self.ts_moving_avg_diff)
@@ -521,7 +659,177 @@ class UI:
         self.canvas.get_tk_widget().pack(side=RIGHT)
         self.canvas.draw()
         self.is_canvas = 1
+    
+    def load_train(self):
         
+        self.filename = filedialog.askopenfilename(initialdir="/",
+                        title="Select a File",
+                        filetypes=(("Excel files", ".IMD*"), ("all files", 
+                                                               "*.*"),
+                                   ("Excel files", ".csv*")))
+        
+        self.datatype = self.filename.split('.')
+        if (self.datatype[-1] == 'csv'):
+            messagebox.showinfo('Info','Please try again later')
+            # self.df = pd.read_csv(self.filename)
+            # self.df = client.OpenDatabase(self.df)	
+        
+        elif self.datatype[-1] == 'IMD':
+            
+            # Read from .IMD file
+            self.filename=self.filename.split('/')
+            self.filename=self.filename[-1]                  # Dataset must be in IDEA working directory
+            self.train = ideaLib.idea2py(database = self.filename)
+            
+        if self.train is None:
+           messagebox.showinfo("Info",
+                               "There was something wrong with the import process of IDEA database to Pandas dataframe")
+        elif self.train.empty:
+          messagebox.showinfo("Info","You selected an empty IDEA database")
+        if self.datatype[-1] == 'IMD':
+            # pd.set_option('display.max_columns', None)
+            # pd.set_option("display.float_format",lambda x:"%.4f" % x)
+            self.train.columns = map(str.lower, self.train.columns)
+            self.ts_tot_orders = self.train.groupby(['week'])['num_orders'].sum()
+            
+            self.x_train = self.train.drop(['num_orders'], axis=1).values
+            self.y_train = self.train['num_orders'].values
+            
+
+        elif self.datatype[-1] == 'csv':
+             self.df.columns = map(str.lower, self.df.columns)
+        else :
+            messagebox.showerror('Error', 'Invalid Data Type')
+        
+    def load_test(self):
+        
+        self.filename = filedialog.askopenfilename(initialdir="/",
+                        title="Select a File",
+                        filetypes=(("Excel files", ".IMD*"), ("all files", 
+                                                               "*.*"),
+                                   ("Excel files", ".csv*")))
+        
+        self.datatype = self.filename.split('.')
+        if (self.datatype[-1] == 'csv'):
+            messagebox.showinfo('Info','Please try again later')
+            # self.df = pd.read_csv(self.filename)
+            # self.df = client.OpenDatabase(self.df)	
+        
+        elif self.datatype[-1] == 'IMD':
+            
+            # Read from .IMD file
+            self.filename=self.filename.split('/')
+            self.filename=self.filename[-1]                  # Dataset must be in IDEA working directory
+            self.test = ideaLib.idea2py(database = self.filename)
+            
+        if self.test is None:
+           messagebox.showinfo("Info",
+                               "There was something wrong with the import process of IDEA database to Pandas dataframe")
+        elif self.test.empty:
+          messagebox.showinfo("Info","You selected an empty IDEA database")
+        if self.datatype[-1] == 'IMD':
+            # pd.set_option('display.max_columns', None)
+            # pd.set_option("display.float_format",lambda x:"%.4f" % x)
+            self.test.columns = map(str.lower, self.test.columns)
+            
+            self.x_test = self.test
+            
+        elif self.datatype[-1] == 'csv':
+             self.test.columns = map(str.lower, self.df.columns)
+        else :
+            messagebox.showerror('Error', 'Invalid Data Type')
+            
+    def run_ml(self):
+        
+        if self.var.get() == 0:
+            messagebox.showinfo('Info','Please select a Model')
+        
+        # elif self.Entry1.get().isdigit() == False:
+        #     messagebox.showerror('Error','Type a number for orders')
+        # elif self.Entry2.get().isdigit() == False:
+        #     messagebox.showerror('Error','Type a number for orders')
+        else:
+            radioN = self.var.get()
+            if radioN == 1:
+                self.Linearregression()
+            elif radioN == 2:
+                self.Kneighborsregressor()
+            elif radioN == 3:
+                self.Decisiontreeregressor()
+            else:
+                self.Randomforestregressor()
+        
+    def Linearregression(self):
+
+        lr = LinearRegression()
+        lr.fit(self.x_train, self.y_train)
+        
+        pred = lr.predict(self.x_test)
+        pred = pd.DataFrame(pred)
+        
+        predictions = pd.merge(self.x_test, pred, left_index=True, right_index=True, how='inner')
+        predictions['num_orders'] = predictions[0]
+        predictions = predictions.drop([0], axis=1)
+        ts_tot_pred = predictions.groupby(['week'])['num_orders'].sum()
+        ts_tot_pred = pd.DataFrame(ts_tot_pred)
+        
+        plt.plot(self.ts_tot_orders, color= 'Blue')
+        plt.plot(ts_tot_pred, color= 'Red')        
+        plt.title('LinearRegression')
+        plt.show()
+        ideaLib.py2idea(database = ts_tot_pred)
+    
+    def Kneighborsregressor(self):
+        
+        knn = KNeighborsRegressor(n_neighbors=10)  
+        knn.fit(self.x_train, self.y_train)
+        pred = knn.predict(self.x_test)
+        pred = pd.DataFrame(pred)
+        
+        predictions = pd.merge(self.x_test, pred, left_index=True, right_index=True, how='inner')
+        predictions['num_orders'] = predictions[0]
+        predictions = predictions.drop([0], axis=1)
+        ts_tot_pred = predictions.groupby(['week'])['num_orders'].sum()
+        ts_tot_pred = pd.DataFrame(ts_tot_pred)
+        
+        plt.plot(self.ts_tot_orders, color= 'Blue')
+        plt.plot(ts_tot_pred, color= 'Red')        
+        plt.title('KNeighboursRegression')
+        plt.show()
+    
+    def Decisiontreeregressor(self):
+        dt = DecisionTreeRegressor()
+        dt.fit(self.x_train, self.y_train)
+        pred = dt.predict(self.x_test)
+        pred = pd.DataFrame(pred)
+        
+        predictions = pd.merge(self.x_test, pred, left_index=True, right_index=True, how='inner')
+        predictions['num_orders'] = predictions[0]
+        predictions = predictions.drop([0], axis=1)
+        ts_tot_pred = predictions.groupby(['week'])['num_orders'].sum()
+        ts_tot_pred = pd.DataFrame(ts_tot_pred)
+        
+        plt.plot(self.ts_tot_orders, color= 'Blue')
+        plt.plot(ts_tot_pred, color= 'Red')        
+        plt.title('DecisionTree')
+        plt.show()
+    
+    def Randomforestregressor(self):
+        rf = RandomForestRegressor(n_estimators=10)
+        rf.fit(self.x_train, self.y_train)
+        pred = rf.predict(self.x_test)
+        pred = pd.DataFrame(pred)
+        
+        predictions = pd.merge(self.x_test, pred, left_index=True, right_index=True, how='inner')
+        predictions['num_orders'] = predictions[0]
+        predictions = predictions.drop([0], axis=1)
+        ts_tot_pred = predictions.groupby(['week'])['num_orders'].sum()
+        ts_tot_pred = pd.DataFrame(ts_tot_pred)
+        
+        plt.plot(self.ts_tot_orders, color= 'Blue')
+        plt.plot(ts_tot_pred, color= 'Red')        
+        plt.title('RandomForest')
+        plt.show()        
         
     
 # Tooltip
