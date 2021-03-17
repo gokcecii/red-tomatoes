@@ -624,12 +624,9 @@ is less than 0.05 \n -Test statistics less than critical values"
         ar_fitted = ar.fit(disp=0)
         forecast = ar_fitted.predict(100, 180)
         
-        # plt.plot(self.ts_moving_avg_diff)
-        plt.plot(self.ts_moving_avg_diff)
-        plt.plot(forecast)
         # plt.plot(ar_fit.fittedvalues, color='red')
         # plt.title('AR Model RSS: %.4F'%sum((diff_ARIMA)**2))
-        plt.show(block= False)
+
         
         fig = Figure(figsize=(6, 6), dpi=100)
         fig.add_subplot(111).plot(self.ts_moving_avg_diff)
@@ -653,13 +650,9 @@ is less than 0.05 \n -Test statistics less than critical values"
         ar_fitted = ar.fit(disp=0)
         forecast = ar_fitted.predict(100, 180)
         
-        # plt.plot(self.ts_moving_avg_diff)
-        plt.plot(self.ts_moving_avg_diff)
-        plt.plot(forecast)
         # plt.plot(ar_fit.fittedvalues, color='red')
         # plt.title('AR Model RSS: %.4F'%sum((diff_ARIMA)**2))
-        plt.show(block= False)
-        
+
         fig = Figure(figsize=(6, 6), dpi=100)
         fig.add_subplot(111).plot(self.ts_moving_avg_diff)
         fig.add_subplot(111).plot(forecast)
@@ -785,11 +778,6 @@ is less than 0.05 \n -Test statistics less than critical values"
         ts_tot_pred = predictions.groupby(['week'])['num_orders'].sum()
         ts_tot_pred = pd.DataFrame(ts_tot_pred)
         
-        # plt.plot(self.ts_tot_orders, color= 'Blue')
-        # plt.plot(ts_tot_pred, color= 'Red')        
-        # plt.title('LinearRegression')
-        # plt.show()
-        
         fig = Figure(figsize=(5, 5), dpi=100)
         fig.add_subplot(111).plot(self.ts_tot_orders, color= 'Blue')
         fig.add_subplot(111).plot(ts_tot_pred, color= 'Red')
@@ -818,10 +806,6 @@ is less than 0.05 \n -Test statistics less than critical values"
         ts_tot_pred = predictions.groupby(['week'])['num_orders'].sum()
         ts_tot_pred = pd.DataFrame(ts_tot_pred)
         
-        plt.plot(self.ts_tot_orders, color= 'Blue')
-        plt.plot(ts_tot_pred, color= 'Red')        
-        plt.title('KNeighboursRegression')
-        plt.show()
         ideaLib.py2idea(dataframe= ts_tot_pred, 
                         databaseName= 'ts_tot_pred',
                         client= client)
@@ -854,10 +838,6 @@ is less than 0.05 \n -Test statistics less than critical values"
         ts_tot_pred = predictions.groupby(['week'])['num_orders'].sum()
         ts_tot_pred = pd.DataFrame(ts_tot_pred)
         
-        plt.plot(self.ts_tot_orders, color= 'Blue')
-        plt.plot(ts_tot_pred, color= 'Red')        
-        plt.title('DecisionTree')
-        plt.show()
         ideaLib.py2idea(dataframe= ts_tot_pred, 
                         databaseName= 'ts_tot_pred',
                         client= client)
@@ -889,11 +869,7 @@ is less than 0.05 \n -Test statistics less than critical values"
         predictions = predictions.drop([0], axis=1)
         ts_tot_pred = predictions.groupby(['week'])['num_orders'].sum()
         ts_tot_pred = pd.DataFrame(ts_tot_pred)
-        
-        plt.plot(self.ts_tot_orders, color= 'Blue')
-        plt.plot(ts_tot_pred, color= 'Red')        
-        plt.title('RandomForest')
-        plt.show()        
+              
         ideaLib.py2idea(dataframe= ts_tot_pred, 
                         databaseName= 'ts_tot_pred',
                         client= client)
