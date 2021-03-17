@@ -304,6 +304,11 @@ class UI:
         self.btn_run_ml = Button(ml, text ="Run", width =12 ,height =1, 
                               command=self.run_ml).place(x=50, y=150)
         
+        
+        
+        pd.set_option('display.max_columns', None)
+        pd.set_option("display.float_format",lambda x:"%.4f" % x)
+        
     
     def load(self):
         
@@ -673,9 +678,7 @@ is less than 0.05 \n -Test statistics less than critical values"
         
         self.datatype = self.filename.split('.')
         if (self.datatype[-1] == 'csv'):
-            messagebox.showinfo('Info','Please try again later')
-            # self.df = pd.read_csv(self.filename)
-            # self.df = client.OpenDatabase(self.df)	
+            self.train = pd.read_csv(self.filename)
         
         elif self.datatype[-1] == 'IMD':
             
@@ -689,22 +692,23 @@ is less than 0.05 \n -Test statistics less than critical values"
                                "There was something wrong with the import process of IDEA database to Pandas dataframe")
         elif self.train.empty:
           messagebox.showinfo("Info","You selected an empty IDEA database")
-        if self.datatype[-1] == 'IMD':
             # pd.set_option('display.max_columns', None)
             # pd.set_option("display.float_format",lambda x:"%.4f" % x)
+
+        if self.datatype[-1] == 'csv' or 'IMD':
+            
             self.train.columns = map(str.lower, self.train.columns)
             self.ts_tot_orders = self.train.groupby(['week'])['num_orders'].sum()
             
             self.x_train = self.train.drop(['num_orders'], axis=1).values
             self.y_train = self.train['num_orders'].values
             
-
-        elif self.datatype[-1] == 'csv':
-             self.df.columns = map(str.lower, self.df.columns)
+            
         else :
             messagebox.showerror('Error', 'Invalid Data Type')
         
     def load_test(self):
+        
         
         self.filename = filedialog.askopenfilename(initialdir="/",
                         title="Select a File",
@@ -714,9 +718,7 @@ is less than 0.05 \n -Test statistics less than critical values"
         
         self.datatype = self.filename.split('.')
         if (self.datatype[-1] == 'csv'):
-            messagebox.showinfo('Info','Please try again later')
-            # self.df = pd.read_csv(self.filename)
-            # self.df = client.OpenDatabase(self.df)	
+            self.test = pd.read_csv(self.filename)	
         
         elif self.datatype[-1] == 'IMD':
             
@@ -730,15 +732,12 @@ is less than 0.05 \n -Test statistics less than critical values"
                                "There was something wrong with the import process of IDEA database to Pandas dataframe")
         elif self.test.empty:
           messagebox.showinfo("Info","You selected an empty IDEA database")
-        if self.datatype[-1] == 'IMD':
-            # pd.set_option('display.max_columns', None)
-            # pd.set_option("display.float_format",lambda x:"%.4f" % x)
+        if self.datatype[-1] == 'IMD' or 'csv':
             self.test.columns = map(str.lower, self.test.columns)
             
             self.x_test = self.test
             
-        elif self.datatype[-1] == 'csv':
-             self.test.columns = map(str.lower, self.df.columns)
+
         else :
             messagebox.showerror('Error', 'Invalid Data Type')
             
@@ -754,7 +753,7 @@ is less than 0.05 \n -Test statistics less than critical values"
         else:
             radioN = self.var.get()
             if radioN == 1:
-                self.Linearregression(n_neighbours)
+                self.Linearregression()
             elif radioN == 2:
                 n_neighbours = int(self.Entry_knn.get())
                 self.Kneighborsregressor(n_neighbours)
@@ -782,8 +781,9 @@ is less than 0.05 \n -Test statistics less than critical values"
         fig.add_subplot(111).plot(self.ts_tot_orders, color= 'Blue')
         fig.add_subplot(111).plot(ts_tot_pred, color= 'Red')
         ideaLib.py2idea(dataframe= ts_tot_pred, 
-                        databaseName= 'ts_tot_pred',
+                        databaseName= 'ts_tot_pred_linear',
                         client= client)
+        
         
         if self.is_canvas_ml == 1:
             self.canvas.get_tk_widget().pack_forget() 
@@ -806,15 +806,12 @@ is less than 0.05 \n -Test statistics less than critical values"
         ts_tot_pred = predictions.groupby(['week'])['num_orders'].sum()
         ts_tot_pred = pd.DataFrame(ts_tot_pred)
         
-        ideaLib.py2idea(dataframe= ts_tot_pred, 
-                        databaseName= 'ts_tot_pred',
-                        client= client)
         
         fig = Figure(figsize=(5, 5), dpi=100)
         fig.add_subplot(111).plot(self.ts_tot_orders, color= 'Blue')
         fig.add_subplot(111).plot(ts_tot_pred, color= 'Red')
         ideaLib.py2idea(dataframe= ts_tot_pred, 
-                        databaseName= 'ts_tot_pred',
+                        databaseName= 'ts_tot_pred_knn',
                         client= client)
         
         if self.is_canvas_ml == 1:
@@ -838,9 +835,6 @@ is less than 0.05 \n -Test statistics less than critical values"
         ts_tot_pred = predictions.groupby(['week'])['num_orders'].sum()
         ts_tot_pred = pd.DataFrame(ts_tot_pred)
         
-        ideaLib.py2idea(dataframe= ts_tot_pred, 
-                        databaseName= 'ts_tot_pred',
-                        client= client)
         
         if self.is_canvas_ml == 1:
             self.canvas.get_tk_widget().pack_forget() 
@@ -849,7 +843,7 @@ is less than 0.05 \n -Test statistics less than critical values"
         fig.add_subplot(111).plot(self.ts_tot_orders, color= 'Blue')
         fig.add_subplot(111).plot(ts_tot_pred, color= 'Red')
         ideaLib.py2idea(dataframe= ts_tot_pred, 
-                        databaseName= 'ts_tot_pred',
+                        databaseName= 'ts_tot_pred_dt',
                         client= client)
         
         self.canvas = FigureCanvasTkAgg(fig, master =self.ml)  # A tk.DrawingArea.
@@ -870,15 +864,12 @@ is less than 0.05 \n -Test statistics less than critical values"
         ts_tot_pred = predictions.groupby(['week'])['num_orders'].sum()
         ts_tot_pred = pd.DataFrame(ts_tot_pred)
               
-        ideaLib.py2idea(dataframe= ts_tot_pred, 
-                        databaseName= 'ts_tot_pred',
-                        client= client)
         
         fig = Figure(figsize=(5, 5), dpi=100)
         fig.add_subplot(111).plot(self.ts_tot_orders, color= 'Blue')
         fig.add_subplot(111).plot(ts_tot_pred, color= 'Red')
         ideaLib.py2idea(dataframe= ts_tot_pred, 
-                        databaseName= 'ts_tot_pred',
+                        databaseName= 'ts_tot_pred_rf',
                         client= client)
         
         if self.is_canvas_ml == 1:
