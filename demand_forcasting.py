@@ -47,6 +47,7 @@ class UI:
         
         self.df = None
         self.arıma = arıma
+        self.ml = ml
         
         # LABELFRAME 1
         self.labelframe1 = LabelFrame(win, 
@@ -243,7 +244,8 @@ class UI:
         self.btn_run = Button(arıma, text ="Run", width =12 ,height =1, 
                               command=self.run).place(x=100, y=80)
         
-        self.is_canvas = 0
+        self.is_canvas_arıma = 0
+        self.is_canvas_ml = 0
         
         # ML Win
         self.lbl_train = Label(ml, 
@@ -278,7 +280,15 @@ class UI:
         self.R3 = Radiobutton(ml, text="RandomForestRegressor", variable= self.var, 
                               value =4).place(x=5, y=120)
         
-    
+        self.lbl_knn = Label(ml, text ="n_neighbours:").place(x=170, y=80)
+        self.lbl_rf = Label(ml, text ="n_estimators:").place(x=170, y=120)
+        
+        self.Entry_knn = Entry(ml, width =5)
+        self.Entry_knn.insert(0,10)
+        self.Entry_knn.place(x=250, y=80)
+        self.Entry_rf = Entry(ml, width =5)
+        self.Entry_rf.insert(0,10)
+        self.Entry_rf.place(x=250, y=120)
         
         # self.ar_tool = Button(ml, text ="?", width =1 ,height =1, 
         #                     font='Helvetica 9 bold')
@@ -292,7 +302,7 @@ class UI:
         # self.ma_tool.place(x=140, y=40)
         
         self.btn_run_ml = Button(ml, text ="Run", width =12 ,height =1, 
-                              command=self.run_ml).place(x=200, y=80)
+                              command=self.run_ml).place(x=50, y=150)
         
     
     def load(self):
@@ -540,7 +550,7 @@ is less than 0.05 \n -Test statistics less than critical values"
         
     
     def moving_average(self):
-        self.ismov = 1 # called moving average
+        self.ismov = 1 #  moving average called
         # Moving average method
         window_size = 6
         moving_avg = self.indexedDataset.rolling(window_size).mean()
@@ -605,7 +615,7 @@ is less than 0.05 \n -Test statistics less than critical values"
         
     def arıma_model(self,p,q):
 
-        if self.is_canvas == 1:
+        if self.is_canvas_arıma == 1:
             self.canvas.get_tk_widget().pack_forget()
         
         ar = ARIMA(self.ts_moving_avg_diff['num_orders'], order=(p,1,q))
@@ -629,12 +639,12 @@ is less than 0.05 \n -Test statistics less than critical values"
         self.canvas = FigureCanvasTkAgg(fig, master =self.arıma)  # A tk.DrawingArea.
         self.canvas.get_tk_widget().pack(side=RIGHT)
         self.canvas.draw()        
-        self.is_canvas = 1
+        self.is_canvas_arıma = 1
         
         
     def arma_model(self,p,q):
         
-        if self.is_canvas == 1:
+        if self.is_canvas_arıma == 1:
             self.canvas.get_tk_widget().pack_forget()          
         
         ar = ARMA(self.ts_moving_avg_diff['num_orders'], order=(p,q))
@@ -658,7 +668,7 @@ is less than 0.05 \n -Test statistics less than critical values"
         self.canvas = FigureCanvasTkAgg(fig, master =self.arıma)  # A tk.DrawingArea.
         self.canvas.get_tk_widget().pack(side=RIGHT)
         self.canvas.draw()
-        self.is_canvas = 1
+        self.is_canvas_arıma = 1
     
     def load_train(self):
         
@@ -744,20 +754,22 @@ is less than 0.05 \n -Test statistics less than critical values"
         if self.var.get() == 0:
             messagebox.showinfo('Info','Please select a Model')
         
-        # elif self.Entry1.get().isdigit() == False:
-        #     messagebox.showerror('Error','Type a number for orders')
-        # elif self.Entry2.get().isdigit() == False:
-        #     messagebox.showerror('Error','Type a number for orders')
+        elif self.Entry_knn.get().isdigit() == False:
+            messagebox.showerror('Error','Type a number for n_neighbours')
+        elif self.Entry_rf.get().isdigit() == False:
+            messagebox.showerror('Error','Type a number for n_estimators')
         else:
             radioN = self.var.get()
             if radioN == 1:
-                self.Linearregression()
+                self.Linearregression(n_neighbours)
             elif radioN == 2:
-                self.Kneighborsregressor()
+                n_neighbours = int(self.Entry_knn.get())
+                self.Kneighborsregressor(n_neighbours)
             elif radioN == 3:
                 self.Decisiontreeregressor()
             else:
-                self.Randomforestregressor()
+                n_estimators = int(self.Entry_rf.get())
+                self.Randomforestregressor(n_estimators)
         
     def Linearregression(self):
 
@@ -773,15 +785,29 @@ is less than 0.05 \n -Test statistics less than critical values"
         ts_tot_pred = predictions.groupby(['week'])['num_orders'].sum()
         ts_tot_pred = pd.DataFrame(ts_tot_pred)
         
-        plt.plot(self.ts_tot_orders, color= 'Blue')
-        plt.plot(ts_tot_pred, color= 'Red')        
-        plt.title('LinearRegression')
-        plt.show()
-        ideaLib.py2idea(database = ts_tot_pred)
-    
-    def Kneighborsregressor(self):
+        # plt.plot(self.ts_tot_orders, color= 'Blue')
+        # plt.plot(ts_tot_pred, color= 'Red')        
+        # plt.title('LinearRegression')
+        # plt.show()
         
-        knn = KNeighborsRegressor(n_neighbors=10)  
+        fig = Figure(figsize=(5, 5), dpi=100)
+        fig.add_subplot(111).plot(self.ts_tot_orders, color= 'Blue')
+        fig.add_subplot(111).plot(ts_tot_pred, color= 'Red')
+        ideaLib.py2idea(dataframe= ts_tot_pred, 
+                        databaseName= 'ts_tot_pred',
+                        client= client)
+        
+        if self.is_canvas_ml == 1:
+            self.canvas.get_tk_widget().pack_forget() 
+        
+        self.canvas = FigureCanvasTkAgg(fig, master =self.ml)  # A tk.DrawingArea.
+        self.canvas.get_tk_widget().pack(side=RIGHT)
+        self.canvas.draw()        
+        self.is_canvas_ml = 1
+    
+    def Kneighborsregressor(self, n_neighbours):
+        
+        knn = KNeighborsRegressor(n_neighbours)  
         knn.fit(self.x_train, self.y_train)
         pred = knn.predict(self.x_test)
         pred = pd.DataFrame(pred)
@@ -796,8 +822,27 @@ is less than 0.05 \n -Test statistics less than critical values"
         plt.plot(ts_tot_pred, color= 'Red')        
         plt.title('KNeighboursRegression')
         plt.show()
+        ideaLib.py2idea(dataframe= ts_tot_pred, 
+                        databaseName= 'ts_tot_pred',
+                        client= client)
+        
+        fig = Figure(figsize=(5, 5), dpi=100)
+        fig.add_subplot(111).plot(self.ts_tot_orders, color= 'Blue')
+        fig.add_subplot(111).plot(ts_tot_pred, color= 'Red')
+        ideaLib.py2idea(dataframe= ts_tot_pred, 
+                        databaseName= 'ts_tot_pred',
+                        client= client)
+        
+        if self.is_canvas_ml == 1:
+            self.canvas.get_tk_widget().pack_forget() 
+        
+        self.canvas = FigureCanvasTkAgg(fig, master =self.ml)  # A tk.DrawingArea.
+        self.canvas.get_tk_widget().pack(side=RIGHT)
+        self.canvas.draw()        
+        self.is_canvas_ml = 1
     
     def Decisiontreeregressor(self):
+        
         dt = DecisionTreeRegressor()
         dt.fit(self.x_train, self.y_train)
         pred = dt.predict(self.x_test)
@@ -813,9 +858,28 @@ is less than 0.05 \n -Test statistics less than critical values"
         plt.plot(ts_tot_pred, color= 'Red')        
         plt.title('DecisionTree')
         plt.show()
+        ideaLib.py2idea(dataframe= ts_tot_pred, 
+                        databaseName= 'ts_tot_pred',
+                        client= client)
+        
+        if self.is_canvas_ml == 1:
+            self.canvas.get_tk_widget().pack_forget() 
+        
+        fig = Figure(figsize=(5, 5), dpi=100)
+        fig.add_subplot(111).plot(self.ts_tot_orders, color= 'Blue')
+        fig.add_subplot(111).plot(ts_tot_pred, color= 'Red')
+        ideaLib.py2idea(dataframe= ts_tot_pred, 
+                        databaseName= 'ts_tot_pred',
+                        client= client)
+        
+        self.canvas = FigureCanvasTkAgg(fig, master =self.ml)  # A tk.DrawingArea.
+        self.canvas.get_tk_widget().pack(side=RIGHT)
+        self.canvas.draw()        
+        self.is_canvas_ml = 1
     
-    def Randomforestregressor(self):
-        rf = RandomForestRegressor(n_estimators=10)
+    def Randomforestregressor(self, n_estimators):
+        
+        rf = RandomForestRegressor(n_estimators)
         rf.fit(self.x_train, self.y_train)
         pred = rf.predict(self.x_test)
         pred = pd.DataFrame(pred)
@@ -830,6 +894,24 @@ is less than 0.05 \n -Test statistics less than critical values"
         plt.plot(ts_tot_pred, color= 'Red')        
         plt.title('RandomForest')
         plt.show()        
+        ideaLib.py2idea(dataframe= ts_tot_pred, 
+                        databaseName= 'ts_tot_pred',
+                        client= client)
+        
+        fig = Figure(figsize=(5, 5), dpi=100)
+        fig.add_subplot(111).plot(self.ts_tot_orders, color= 'Blue')
+        fig.add_subplot(111).plot(ts_tot_pred, color= 'Red')
+        ideaLib.py2idea(dataframe= ts_tot_pred, 
+                        databaseName= 'ts_tot_pred',
+                        client= client)
+        
+        if self.is_canvas_ml == 1:
+            self.canvas.get_tk_widget().pack_forget() 
+        
+        self.canvas = FigureCanvasTkAgg(fig, master =self.ml)  # A tk.DrawingArea.
+        self.canvas.get_tk_widget().pack(side=RIGHT)
+        self.canvas.draw()        
+        self.is_canvas_ml = 1
         
     
 # Tooltip
