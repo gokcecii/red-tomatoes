@@ -34,11 +34,6 @@ from sklearn import metrics
 
 dirname = os.path.dirname(__file__)
 
-# Read from CSV
-# center_info = pd.read_csv('D://MED IDEA//project//red_project//fulfilment_center_info.csv')
-# meal_info = pd.read_csv('D://MED IDEA//project//red_project//meal_info.csv')
-# test_data = pd.read_csv('D://MED IDEA//project//red_project//test.csv')
-# train_data = pd.read_csv('D://MED IDEA//project//red_project//train.csv')
 
 # Read from IMD
 class UI:
@@ -199,8 +194,6 @@ class UI:
                               text = "--> Forecasting with Machine Learning")
         self.ml_text.pack(side="left")
         
-
-
         
         # Arıma win
         
@@ -246,6 +239,8 @@ class UI:
         
         self.is_canvas_arıma = 0
         self.is_canvas_ml = 0
+        self.indexedDataset = pd.DataFrame()
+        self.ts_moving_avg_diff = None
         
         # ML Win
         self.lbl_train = Label(ml, 
@@ -267,7 +262,6 @@ class UI:
         self.title2 = Label(ml, text ="Order", 
                             font='Helvetica 9 bold').place(x=100, y=80)
         
-        self.var = IntVar()
         self.R1 = Radiobutton(ml, text="LinearRegression", variable= self.var, 
                               value =1).place(x=5, y=60)
         
@@ -320,9 +314,9 @@ class UI:
         
         self.datatype = self.filename.split('.')
         if (self.datatype[-1] == 'csv'):
-            messagebox.showinfo('Info','Please try again later')
-            # self.df = pd.read_csv(self.filename)
-            # self.df = client.OpenDatabase(self.df)	
+            self.df = pd.read_csv(self.filename)
+            self.indexedDataset= self.df.groupby(['week'])['num_orders'].sum().reset_index()
+            self.indexedDataset.set_index(['week'],inplace=True)
         
         elif self.datatype[-1] == 'IMD':
             self.datalocation['text'] = self.filename  
@@ -338,11 +332,13 @@ class UI:
         elif self.df.empty:
           messagebox.showinfo("Info","You selected an empty IDEA database")
         if self.datatype[-1] == 'IMD':
-            # pd.set_option('display.max_columns', None)
-            # pd.set_option("display.float_format",lambda x:"%.4f" % x)
+
             self.df = self.df.astype({"CENTER_TYPE": str,"CATEGORY": str,
                                           "CUISINE": str})
             self.df.columns = map(str.lower, self.df.columns)
+            
+            self.indexedDataset= self.df.groupby(['week'])['num_orders'].sum().reset_index()
+            self.indexedDataset.set_index(['week'],inplace=True)
         elif self.datatype[-1] == 'csv':
              self.df.columns = map(str.lower, self.df.columns)
         else :
@@ -478,34 +474,20 @@ class UI:
         # new_data.drop(columns = 'week', axis = 1, inplace=True)
         # new_data.set_index('date',inplace=True)
         
-        
-        # result = adfuller(new_data.num_orders.dropna())
-        # print('ADF Statistic: %f' % result[0])
-        # print('p-value: %f' % result[1])
-        
     
     def corr(self):
         new_data = self.df.groupby(['week'])['num_orders'].sum().reset_index()
         autocorrelation_plot(new_data['num_orders'])
         plt.show(block = False)
 
-    
-    # def sel(self):
-       # self.selection = "You selected the option " + str(self.var.get())
-       # label.config(text = selection)
         
     def adfuller(self):
-        
-        self.indexedDataset= self.df.groupby(['week'])['num_orders'].sum().reset_index()
-        self.indexedDataset.set_index(['week'],inplace=True)
 
         #Perform Augmented Dickey–Fuller test:
         # check_adfuller
         def check_adfuller(ts):
             # Dickey-Fuller test
-            print('Results of Dickey Fuller Test:')
             dftest = adfuller(ts, autolag='AIC')
-            print(dftest)
             dfoutput = pd.Series(dftest[0:4], index=['Test Statistic',
                                                      'p-value','#Lags Used',
                                                      'Number of Observations \
@@ -519,11 +501,10 @@ is less than 0.05 \n -Test statistics less than critical values"
 
             
         # check_mean_std
-        def check_mean_std():
+        def check_mean_std(ts):
             #Rolling statistics
-            ts = self.indexedDataset
-            rolmean = ts.rolling(6).mean()
-            rolstd = ts.rolling(6).std()
+            rolmean = ts.rolling(12).mean()
+            rolstd = ts.rolling(12).std()
             plt.figure(figsize=(22,10))   
             orig = plt.plot(ts, color='red',label='Original')
             mean = plt.plot(rolmean, color='black', label='Rolling Mean')
@@ -536,7 +517,7 @@ is less than 0.05 \n -Test statistics less than critical values"
             
         # check stationary: mean, variance(std)and adfuller test
         if self.ismov == 0:
-            check_mean_std()
+            check_mean_std(self.indexedDataset)
             check_adfuller(self.indexedDataset.num_orders)
         
         # plt.figure(figsize=(22,10))
@@ -550,14 +531,14 @@ is less than 0.05 \n -Test statistics less than critical values"
         
         # check stationary: mean, variance(std)and adfuller test
         if self.ismov == 1:
-            check_mean_std()
+            check_mean_std(self.ts_moving_avg_diff)
             check_adfuller(self.ts_moving_avg_diff.num_orders)
         
     
     def moving_average(self):
         self.ismov = 1 #  moving average called
         # Moving average method
-        window_size = 6
+        window_size = 12
         moving_avg = self.indexedDataset.rolling(window_size).mean()
         self.ts_moving_avg_diff = self.indexedDataset - moving_avg
         self.ts_moving_avg_diff.dropna(inplace=True) # first 6 is nan value due to window size
@@ -602,41 +583,53 @@ is less than 0.05 \n -Test statistics less than critical values"
             if radioN == 1:
                 p = int(self.Entry1.get())
                 q = 0
-                self.arıma_model(p,q)
+                if self.ts_moving_avg_diff is not None:
+                    self.arıma_model(p,q,self.ts_moving_avg_diff)
+                else:
+                    self.arıma_model(p,q,self.indexedDataset)
+                    print(self.indexedDataset)
             elif radioN == 2:
                 p = 0
                 q = int(self.Entry2.get())
-                self.arıma_model(p,q)
+                if self.ts_moving_avg_diff is not None:
+                    self.arıma_model(p,q,self.ts_moving_avg_diff)
+                else:
+                    self.arıma_model(p,q,self.indexedDataset)
             elif radioN == 3:
                 p = int(self.Entry1.get())
                 q = int(self.Entry2.get())
-                self.arma_model(p,q)
+                if self.ts_moving_avg_diff is not None:
+                    self.arma_model(p,q,self.ts_moving_avg_diff)
+                else:
+                    self.arma_model(p,q,self.indexedDataset)
             else:
                 p = int(self.Entry1.get())
                 q = int(self.Entry2.get())   
-                self.arıma_model(p,q)
+                if self.ts_moving_avg_diff is not None:
+                    self.arıma_model(p,q,self.ts_moving_avg_diff)
+                else:
+                    self.arıma_model(p,q,self.indexedDataset)
     
            
         
-    def arıma_model(self,p,q):
+    def arıma_model(self,p,q,df):
 
         if self.is_canvas_arıma == 1:
             self.canvas.get_tk_widget().pack_forget()
         
-        ar = ARIMA(self.ts_moving_avg_diff['num_orders'], order=(p,1,q))
-        # diff_ARIMA = (ar_fit.fittedvalues - self.ts_moving_avg_diff['num_orders'])
+        ar = ARIMA(df['num_orders'], order=(p,1,q))
+        # diff_ARIMA = (ar_fit.fittedvalues - df['num_orders'])
         # diff_ARIMA.dropna(inplace=True)
-        ar_fitted = ar.fit(disp=0)
-        forecast = ar_fitted.predict(100, 180)
+        ar_fitted = ar.fit()
+        forecast = ar_fitted.predict(50, 165)
         
         # plt.plot(ar_fit.fittedvalues, color='red')
         # plt.title('AR Model RSS: %.4F'%sum((diff_ARIMA)**2))
 
         
         fig = Figure(figsize=(6, 6), dpi=100)
-        fig.add_subplot(111).plot(self.ts_moving_avg_diff)
+        fig.add_subplot(111).plot(df)
         fig.add_subplot(111).plot(forecast)
-        
 
         self.canvas = FigureCanvasTkAgg(fig, master =self.arıma)  # A tk.DrawingArea.
         self.canvas.get_tk_widget().pack(side=RIGHT)
@@ -644,22 +637,22 @@ is less than 0.05 \n -Test statistics less than critical values"
         self.is_canvas_arıma = 1
         
         
-    def arma_model(self,p,q):
+    def arma_model(self,p,q,df):
         
         if self.is_canvas_arıma == 1:
             self.canvas.get_tk_widget().pack_forget()          
         
-        ar = ARMA(self.ts_moving_avg_diff['num_orders'], order=(p,q))
-        # diff_ARIMA = (ar_fit.fittedvalues - self.ts_moving_avg_diff['num_orders'])
+        ar = ARMA(df['num_orders'], order=(p,q))
+        # diff_ARIMA = (ar_fit.fittedvalues - df['num_orders'])
         # diff_ARIMA.dropna(inplace=True)
         ar_fitted = ar.fit(disp=0)
-        forecast = ar_fitted.predict(100, 180)
+        forecast = ar_fitted.predict(50, 165)
         
         # plt.plot(ar_fit.fittedvalues, color='red')
         # plt.title('AR Model RSS: %.4F'%sum((diff_ARIMA)**2))
 
         fig = Figure(figsize=(6, 6), dpi=100)
-        fig.add_subplot(111).plot(self.ts_moving_avg_diff)
+        fig.add_subplot(111).plot(df)
         fig.add_subplot(111).plot(forecast)
         
 
@@ -780,10 +773,10 @@ is less than 0.05 \n -Test statistics less than critical values"
         fig = Figure(figsize=(5, 5), dpi=100)
         fig.add_subplot(111).plot(self.ts_tot_orders, color= 'Blue')
         fig.add_subplot(111).plot(ts_tot_pred, color= 'Red')
+        
         ideaLib.py2idea(dataframe= ts_tot_pred, 
                         databaseName= 'ts_tot_pred_linear',
                         client= client)
-        
         
         if self.is_canvas_ml == 1:
             self.canvas.get_tk_widget().pack_forget() 
