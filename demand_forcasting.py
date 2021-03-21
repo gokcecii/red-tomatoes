@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 """
+Created on Sun Mar 21 20:49:57 2021
+
+@author: seher
+"""
+# -*- coding: utf-8 -*-
+"""
 Created on Mon Mar 15 09:54:00 2021
 
 @author: kenan
@@ -254,12 +260,12 @@ touches y=0.0 line at x=0.\n Thus, from theory, Q = 0 From the PACF graph, \
         self.ar_tool = Button(arıma, text ="?", width =1 ,height =1, 
                             font='Helvetica 9 bold')
         
-        self.lbl_ar_tooltip = CreateToolTip(self.ar_tool, "p for AR order")
+        self.lbl_ar_tooltip = CreateToolTip(self.ar_tool, "p for AR order = From the ACF graph, we see that curve touches y=0.0 line at x=2 => Q=2")
         self.ar_tool.place(x=140, y=20)
         self.ma_tool = Button(arıma, text ="?", width =1 ,height =1, 
                             font='Helvetica 9 bold')
         
-        self.lbl_ma_tooltip=CreateToolTip(self.ma_tool, "q for MA order")
+        self.lbl_ma_tooltip=CreateToolTip(self.ma_tool, "q for MA order = From the PACF graph, we see that curve touches y=0.0 line at x=2 => P=2")
         self.ma_tool.place(x=140, y=40)
         self.btn_run = Button(arıma, text ="Run", width =12 ,height =1, 
                               command=self.run).place(x=100, y=80)
