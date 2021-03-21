@@ -31,6 +31,9 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split 
 from sklearn.preprocessing import StandardScaler
 from sklearn import metrics
+from statsmodels.tsa.stattools import acf, pacf
+import statsmodels.api as sm
+from sklearn.metrics import mean_squared_error
 
 dirname = os.path.dirname(__file__)
 
@@ -78,7 +81,10 @@ class UI:
         
         self.btn2 = Button(self.labelframe2, 
                            text = "Analyze", 
-                           command = self.Data_Analyze)
+                           command = self.Data_Analyze,
+                           width = 25,
+                           height = 1)
+        
         self.btn2.grid(column = 1, 
                        row = 1,
                        padx = 5)
@@ -165,7 +171,25 @@ class UI:
     
         
         self.upload_text = Label(self.labelframe4, 
-                              text = "\nBROWSE BUTTON\nLoads a dataset (.IMD or .csv extensions are allowed.)\n----------\nANALYZE BUTTON\nCreates a new folder named as \"plots\" and saves the resultant plots into the folder.\nCorresponging plots are base_price.png, Center_id Orders.png, checkout_price.png, meal_id Orders.png, seasonality.png, Weekly Orders.png.\n---------\nCORRELATION BUTTON\nShows the correlation plot.\n----------\nADFULLER TEST BUTTON\nDetermines if time series data is stationary or not.\n----------\nRESULT SECTION\nAugmented Dickey-Fuller (ADF) test is used.\nADF test is a type of unit root test. A unit root test determines how strongly a time series is defined by a trend.\nThe null hypothesis of the test is that the time series can be represented by a unit root, that it is not stationary (has some time-dependent structure). \nThe alternate hypothesis (rejecting the null hypothesis) is that the time series is stationary.\nFor a time series to be stationary, ADF test must result as follows:\na. If p-value > 0.05: Fail to reject the null hypothesis (H0), the data has a unit root and is non-stationary.\n  If p-value <= 0.05: Reject the null hypothesis (H0), the data does not have a unit root and is stationary.\nb) Critical values at 1%, 5%, 10% confidence intervals should be as close as possible to the Test Statistics.")
+                              text = "\nBROWSE BUTTON\nLoads a dataset \
+(.IMD or .csv extensions are allowed.)\n----------\nANALYZE BUTTON\nCreates a \
+new folder named as \"plots\" and saves the resultant plots into the folder. \
+\nCorresponging plots are base_price.png, Center_id Orders.png, \
+checkout_price.png, meal_id Orders.png, seasonality.png, Weekly Orders.png.\
+\n---------\nCORRELATION BUTTON\nShows the correlation plot. \
+\n----------\nADFULLER TEST BUTTON\nDetermines if time series data is \
+stationary or not.\n----------\nRESULT SECTION\nAugmented Dickey-Fuller (ADF) \
+ test is used.\nADF test is a type of unit root test. A unit root test \
+ determines how strongly a time series is defined by a trend.\nThe null \
+ hypothesis of the test is that the time series can be represented by a unit \
+ root, that it is not stationary (has some time-dependent structure). \nThe \
+ alternate hypothesis (rejecting the null hypothesis) is that the time series \
+ is stationary.\nFor a time series to be stationary, ADF test must result as \
+ follows:\na. If p-value > 0.05: Fail to reject the null hypothesis (H0), the\
+ data has a unit root and is non-stationary.\n  If p-value <= 0.05: Reject \
+ the null hypothesis (H0), the data does not have a unit root and is \
+ stationary.\nb) Critical values at 1%, 5%, 10% confidence intervals should \
+    be as close as possible to the Test Statistics.")
         self.upload_text.pack(side="left")
         
         # help arima tab
@@ -178,7 +202,10 @@ class UI:
         
         self.labelframe5.pack_propagate(0)
         self.arima_text = Label(self.labelframe5, 
-                              text = "--> Possible methods are AR, MA, ARMA, ARIMA for time series analysis. Example: From the ACF graph, we see that curve touches y=0.0 line at x=0.\n Thus, from theory, Q = 0 From the PACF graph, we see that curve touches  y=0.0 line at x=1. Thus, from theory, P = 1")
+                              text = "--> Possible methods are AR, MA, ARMA, \
+ARIMA for time series analysis. Example: From the ACF graph, we see that curve \
+touches y=0.0 line at x=0.\n Thus, from theory, Q = 0 From the PACF graph, \
+ we see that curve touches  y=0.0 line at x=1. Thus, from theory, P = 1")
         self.arima_text.pack(side="left")
         
         # ml help tab
@@ -476,10 +503,34 @@ class UI:
         
     
     def corr(self):
-        new_data = self.df.groupby(['week'])['num_orders'].sum().reset_index()
-        autocorrelation_plot(new_data['num_orders'])
-        plt.show(block = False)
-
+        new_data = self.df.groupby(['week'])['num_orders'].sum()
+        if self.ismov == 1:
+            df = self.ts_moving_avg_diff
+        else:
+            df = new_data
+        
+        lag_acf = acf(df, nlags=20)
+        lag_pacf = pacf(df, nlags=20, method='ols')
+        
+        # ACF
+        plt.figure(figsize=(22,10))
+        
+        plt.subplot(121) 
+        plt.plot(lag_acf)
+        plt.axhline(y=0,linestyle='--',color='gray')
+        plt.axhline(y=-1.96/np.sqrt(len(df)),linestyle='--',color='gray')
+        plt.axhline(y=1.96/np.sqrt(len(df)),linestyle='--',color='gray')
+        plt.title('Autocorrelation Function')
+        
+        # PACF
+        plt.subplot(122)
+        plt.plot(lag_pacf)
+        plt.axhline(y=0,linestyle='--',color='gray')
+        plt.axhline(y=-1.96/np.sqrt(len(df)),linestyle='--',color='gray')
+        plt.axhline(y=1.96/np.sqrt(len(df)),linestyle='--',color='gray')
+        plt.title('Partial Autocorrelation Function')
+        plt.tight_layout()
+        plt.show()
         
     def adfuller(self):
 
@@ -568,7 +619,8 @@ is less than 0.05 \n -Test statistics less than critical values"
         plt.legend(loc='best')
         plt.tight_layout()
         plt.show()
-
+        
+    
     def run(self):
         
         if self.var.get() == 0:
@@ -618,19 +670,25 @@ is less than 0.05 \n -Test statistics less than critical values"
             self.canvas.get_tk_widget().pack_forget()
         
         ar = ARIMA(df['num_orders'], order=(p,1,q))
-        # diff_ARIMA = (ar_fit.fittedvalues - df['num_orders'])
-        # diff_ARIMA.dropna(inplace=True)
+
         ar_fitted = ar.fit()
         forecast = ar_fitted.predict(50, 165)
         
-        # plt.plot(ar_fit.fittedvalues, color='red')
-        # plt.title('AR Model RSS: %.4F'%sum((diff_ARIMA)**2))
-
+        diff_ARIMA = (ar_fitted.fittedvalues - df['num_orders'])
+        diff_ARIMA.dropna(inplace=True)
         
         fig = Figure(figsize=(6, 6), dpi=100)
         fig.add_subplot(111).plot(df)
         fig.add_subplot(111).plot(forecast)
-
+        
+        if self.ismov == 1:
+            forecast2 = ar_fitted.predict(12,145)
+        else:
+            forecast2 = ar_fitted.predict(1,145)
+        error = mean_squared_error(df['num_orders'], forecast2)
+        fig.suptitle('Root mean squared error: %.4F'%error)
+        # fig.suptitle('ARIMA Model RSS: %.4F'%sum((diff_ARIMA)**2))
+        
         self.canvas = FigureCanvasTkAgg(fig, master =self.arıma)  # A tk.DrawingArea.
         self.canvas.get_tk_widget().pack(side=RIGHT)
         self.canvas.draw()        
@@ -643,17 +701,24 @@ is less than 0.05 \n -Test statistics less than critical values"
             self.canvas.get_tk_widget().pack_forget()          
         
         ar = ARMA(df['num_orders'], order=(p,q))
-        # diff_ARIMA = (ar_fit.fittedvalues - df['num_orders'])
-        # diff_ARIMA.dropna(inplace=True)
         ar_fitted = ar.fit(disp=0)
         forecast = ar_fitted.predict(50, 165)
         
-        # plt.plot(ar_fit.fittedvalues, color='red')
-        # plt.title('AR Model RSS: %.4F'%sum((diff_ARIMA)**2))
+        diff_ARIMA = (ar_fitted.fittedvalues - df['num_orders'])
+        diff_ARIMA.dropna(inplace=True)
 
         fig = Figure(figsize=(6, 6), dpi=100)
         fig.add_subplot(111).plot(df)
         fig.add_subplot(111).plot(forecast)
+        
+        if self.ismov == 1:
+            forecast2 = ar_fitted.predict(12,145)
+        else:
+            forecast2 = ar_fitted.predict(1,145)
+        error = mean_squared_error(df['num_orders'], forecast2)
+        fig.suptitle('Root mean squared error: %.4F'%error)
+        
+        # fig.suptitle('ARMA Model RSS: %.4F'%sum((diff_ARIMA)**2))
         
 
         self.canvas = FigureCanvasTkAgg(fig, master =self.arıma)  # A tk.DrawingArea.
@@ -693,9 +758,8 @@ is less than 0.05 \n -Test statistics less than critical values"
             self.train.columns = map(str.lower, self.train.columns)
             self.ts_tot_orders = self.train.groupby(['week'])['num_orders'].sum()
             
-            self.x_train = self.train.drop(['num_orders'], axis=1).values
-            self.y_train = self.train['num_orders'].values
-            
+            self.y_train = self.train['num_orders']
+            self.x_train = self.train.drop(['num_orders'], axis=1)
             
         else :
             messagebox.showerror('Error', 'Invalid Data Type')
@@ -728,8 +792,7 @@ is less than 0.05 \n -Test statistics less than critical values"
         if self.datatype[-1] == 'IMD' or 'csv':
             self.test.columns = map(str.lower, self.test.columns)
             
-            self.x_test = self.test
-            
+            self.x_test = self.test.copy()
 
         else :
             messagebox.showerror('Error', 'Invalid Data Type')
@@ -744,6 +807,26 @@ is less than 0.05 \n -Test statistics less than critical values"
         elif self.Entry_rf.get().isdigit() == False:
             messagebox.showerror('Error','Type a number for n_estimators')
         else:
+            # sc = StandardScaler()
+            # self.x_test = sc.fit_transform(self.test.values)
+            # self.x_test = pd.DataFrame(self.x_test, 
+            #                            index=self.test.index, 
+            #                            columns=self.test.columns)
+            # week = self.test['week']
+            # self.x_test = self.x_test.drop(['week'], axis = 1)
+            # self.x_test = self.x_test.drop(['id'], axis = 1)
+            # self.x_test['week'] = week
+            
+            # self.x_train = sc.fit_transform(self.train.values)
+            # self.x_train = pd.DataFrame(self.x_train, 
+            #                            index=self.train.index,
+            #                            columns=self.train.columns)
+            # week = self.train['week']
+            # self.x_train = self.x_train.drop(['week'], axis = 1)
+            # self.x_train = self.x_train.drop(['id'], axis = 1)
+            # self.x_train['week'] = week
+            
+            
             radioN = self.var.get()
             if radioN == 1:
                 self.Linearregression()
@@ -763,7 +846,6 @@ is less than 0.05 \n -Test statistics less than critical values"
         
         pred = lr.predict(self.x_test)
         pred = pd.DataFrame(pred)
-        
         predictions = pd.merge(self.x_test, pred, left_index=True, right_index=True, how='inner')
         predictions['num_orders'] = predictions[0]
         predictions = predictions.drop([0], axis=1)
@@ -838,6 +920,7 @@ is less than 0.05 \n -Test statistics less than critical values"
         ideaLib.py2idea(dataframe= ts_tot_pred, 
                         databaseName= 'ts_tot_pred_dt',
                         client= client)
+        
         
         self.canvas = FigureCanvasTkAgg(fig, master =self.ml)  # A tk.DrawingArea.
         self.canvas.get_tk_widget().pack(side=RIGHT)
