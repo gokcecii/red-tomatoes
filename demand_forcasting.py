@@ -1,11 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Mar 21 20:49:57 2021
-
-@author: seher
-"""
-# -*- coding: utf-8 -*-
-"""
 Created on Mon Mar 15 09:54:00 2021
 
 @author: kenan
@@ -260,12 +254,18 @@ touches y=0.0 line at x=0.\n Thus, from theory, Q = 0 From the PACF graph, \
         self.ar_tool = Button(arıma, text ="?", width =1 ,height =1, 
                             font='Helvetica 9 bold')
         
-        self.lbl_ar_tooltip = CreateToolTip(self.ar_tool, "p for AR order = From the ACF graph, we see that curve touches y=0.0 line at x=2 => P=2")
+        self.lbl_ar_tooltip = CreateToolTip(self.ar_tool, 
+                                            "p for AR order = From the ACF \
+                                            graph, x value when the curve \
+                                            touches y = 0.0")
         self.ar_tool.place(x=140, y=20)
         self.ma_tool = Button(arıma, text ="?", width =1 ,height =1, 
                             font='Helvetica 9 bold')
         
-        self.lbl_ma_tooltip=CreateToolTip(self.ma_tool, "q for MA order = From the PACF graph, we see that curve touches y=0.0 line at x=2 => Q=2")
+        self.lbl_ma_tooltip=CreateToolTip(self.ma_tool, 
+                                          "q for AR order = From the ACF \
+                                          graph, x value when the curve \
+                                          touches y = 0.0")
         self.ma_tool.place(x=140, y=40)
         self.btn_run = Button(arıma, text ="Run", width =12 ,height =1, 
                               command=self.run).place(x=100, y=80)
@@ -317,20 +317,8 @@ touches y=0.0 line at x=0.\n Thus, from theory, Q = 0 From the PACF graph, \
         self.Entry_rf.insert(0,10)
         self.Entry_rf.place(x=250, y=120)
         
-        # self.ar_tool = Button(ml, text ="?", width =1 ,height =1, 
-        #                     font='Helvetica 9 bold')
-        
-        # self.lbl_ar_tooltip = CreateToolTip(self.ar_tool, "p for AR order")
-        # self.ar_tool.place(x=140, y=20)
-        # self.ma_tool = Button(arıma, text ="?", width =1 ,height =1, 
-        #                     font='Helvetica 9 bold')
-        
-        # self.lbl_ma_tooltip=CreateToolTip(self.ma_tool, "q for MA order")
-        # self.ma_tool.place(x=140, y=40)
-        
         self.btn_run_ml = Button(ml, text ="Run", width =12 ,height =1, 
                               command=self.run_ml).place(x=50, y=150)
-        
         
         
         pd.set_option('display.max_columns', None)
@@ -452,7 +440,6 @@ touches y=0.0 line at x=0.\n Thus, from theory, Q = 0 From the PACF graph, \
         plt.ylabel('orders')
         plt.savefig(dirname + '/plots/base_price.png')
         plt.close()
-        
         
         # pd.set_option('display.max_columns', None)
         
@@ -576,15 +563,6 @@ is less than 0.05 \n -Test statistics less than critical values"
         if self.ismov == 0:
             check_mean_std(self.indexedDataset)
             check_adfuller(self.indexedDataset.num_orders)
-        
-        # plt.figure(figsize=(22,10))
-        # plt.plot(self.indexedDataset, color = "red",label = "Original")
-        # plt.plot(moving_avg, color='black', label = "moving_avg_mean")
-        # plt.title("Mean Temperature of Bindukuri Area")
-        # plt.xlabel("Date")
-        # plt.ylabel("Mean Temperature")
-        # plt.legend()
-        # plt.show()
         
         # check stationary: mean, variance(std)and adfuller test
         if self.ismov == 1:
@@ -852,7 +830,8 @@ is less than 0.05 \n -Test statistics less than critical values"
         
         pred = lr.predict(self.x_test)
         pred = pd.DataFrame(pred)
-        predictions = pd.merge(self.x_test, pred, left_index=True, right_index=True, how='inner')
+        predictions = pd.merge(self.x_test, pred, left_index=True,
+                               right_index=True, how='inner')
         predictions['num_orders'] = predictions[0]
         predictions = predictions.drop([0], axis=1)
         ts_tot_pred = predictions.groupby(['week'])['num_orders'].sum()
@@ -995,7 +974,7 @@ class CreateToolTip(object):
     
 
 root = tk.Tk() 
-root.title("Tab Widget") 
+root.title("Demand Forcasting") 
 root.geometry("800x400")
 tabControl = ttk.Notebook(root) 
   
@@ -1012,16 +991,4 @@ tabControl.pack(expand = 1, fill ="both")
 
 mywin = UI(tab1,tab2,tab3,tab4)
 
-
-# ttk.Label(tab1,  
-#           text ="Welcome to GeeksForGeeks").grid(column = 0,  
-#                                                 row = 0, 
-#                                                 padx = 30, 
-#                                                 pady = 30)   
-# ttk.Label(tab2, 
-#           text ="Lets dive into theworld of computers").grid(column = 0, 
-#                                                         row = 0,  
-#                                                         padx = 30, 
-#                                                         pady = 30) 
-  
 root.mainloop()   
